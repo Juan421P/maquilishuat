@@ -1,0 +1,85 @@
+/* ─── ORDER MANAGEMENT — shared by Pedidos, Clients, Pagos, Rutas ───── */
+/* All shared utility classes are in index.css.
+   This file just adds page-specific overrides. */
+
+/* Status icons inline */
+.badge svg { vertical-align: middle; }
+
+/* Clients grid */
+.clients-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+.client-card {
+  background: var(--surface); border-radius: var(--radius-xl);
+  border: 1px solid var(--border); box-shadow: var(--shadow-sm);
+  padding: 20px; display: flex; flex-direction: column; gap: 14px;
+  transition: all 0.2s var(--ease);
+}
+.client-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+.client-card-header { display: flex; align-items: center; gap: 12px; }
+.client-card-avatar {
+  width: 44px; height: 44px; border-radius: var(--radius-full);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 800; color: #fff; flex-shrink: 0;
+}
+.client-card-name { font-size: 15px; font-weight: 700; color: var(--text-primary); }
+.client-card-status { margin-top: 2px; }
+.client-card-info { display: flex; flex-direction: column; gap: 6px; }
+.client-info-row {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12.5px; color: var(--text-tertiary);
+}
+.client-info-row svg { color: var(--text-muted); flex-shrink: 0; }
+.client-card-stats {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 8px; padding-top: 12px;
+  border-top: 1px solid var(--border-subtle);
+}
+.client-stat { text-align: center; }
+.client-stat-val { font-family: var(--font-heading); font-size: 18px; font-weight: 800; color: var(--text-primary); }
+.client-stat-label { font-size: 11px; color: var(--text-muted); font-weight: 500; }
+.client-card-actions {
+  display: flex; gap: 8px; padding-top: 8px;
+  border-top: 1px solid var(--border-subtle);
+}
+.client-action-btn {
+  flex: 1; padding: 8px; border-radius: var(--radius-md);
+  font-size: 12px; font-weight: 600; text-align: center;
+  transition: all 0.15s;
+}
+.client-action-btn.edit   { background: var(--blue-50); color: var(--blue-700); border: 1px solid var(--blue-100); }
+.client-action-btn.edit:hover { background: var(--blue-100); }
+.client-action-btn.delete { background: var(--red-50); color: var(--red-700); border: 1px solid var(--red-100); }
+.client-action-btn.delete:hover { background: var(--red-100); }
+
+/* Rutas cards */
+.rutas-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+.ruta-card {
+  background: var(--surface); border-radius: var(--radius-xl);
+  border: 1px solid var(--border); box-shadow: var(--shadow-sm);
+  padding: 20px; display: flex; flex-direction: column; gap: 14px;
+  transition: all 0.2s var(--ease);
+}
+.ruta-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+.ruta-card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.ruta-dot {
+  width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; margin-top: 4px;
+}
+.ruta-card-title { font-size: 15px; font-weight: 700; color: var(--text-primary); }
+.ruta-card-zone  { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.ruta-card-body  { display: flex; flex-direction: column; gap: 8px; }
+.ruta-info-row   { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-secondary); }
+.ruta-info-row svg { color: var(--text-muted); flex-shrink: 0; }
+.ruta-card-footer {
+  display: flex; align-items: center; justify-content: space-between;
+  padding-top: 12px; border-top: 1px solid var(--border-subtle);
+}
+.ruta-stops { font-size: 12px; color: var(--text-muted); }
+.ruta-stops span { font-weight: 700; color: var(--text-primary); }
+.ruta-actions { display: flex; gap: 6px; }
