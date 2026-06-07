@@ -1,4 +1,5 @@
 import productModel from "../models/product.js";
+import { v2 as cloudinary } from "cloudinary";
 
 const productController = {};
 
@@ -32,11 +33,16 @@ productController.getProductById = async (req, res) => {
 //INSERT
 productController.insertProduct = async (req, res) => {
     try {
-        const { name, images, product_type, flavor, size, price, stock, description } = req.body;
+        const { name, product_type, flavor, size, price, stock, description } = req.body;
 
         if (!name || !product_type || price == null || stock == null) {
             return res.status(400).json({ message: "Fields required" });
         }
+
+        const images = (req.files || []).map((file) => ({
+            image: file.path,
+            public_id: file.filename
+        }));
 
         const newProduct = new productModel({ name, images, product_type, flavor, size, price, stock, description });
         await newProduct.save();
@@ -51,11 +57,30 @@ productController.insertProduct = async (req, res) => {
 //UPDATE
 productController.updateProduct = async (req, res) => {
     try {
-        const { name, images, product_type, flavor, size, price, stock, description } = req.body;
+        const { name, product_type, flavor, size, price, stock, description } = req.body;
+
+        const updateData = { name, product_type, flavor, size, price, stock, description };
+
+        if (req.files && req.files.length > 0) {
+            const productFound = await productModel.findById(req.params.id);
+
+            if (!productFound) {
+                return res.status(404).json({ message: "Product not found" });
+            }
+
+            for (const oldImage of productFound.images) {
+                await cloudinary.uploader.destroy(oldImage.public_id);
+            }
+
+            updateData.images = req.files.map((file) => ({
+                image: file.path,
+                public_id: file.filename
+            }));
+        }
 
         const productUpdated = await productModel.findByIdAndUpdate(
             req.params.id,
-            { name, images, product_type, flavor, size, price, stock, description },
+            updateData,
             { new: true }
         );
 
@@ -77,6 +102,10 @@ productController.deleteProduct = async (req, res) => {
 
         if (!deletedProduct) {
             return res.status(404).json({ message: "Product not found" });
+        }
+
+        for (const image of deletedProduct.images) {
+            await cloudinary.uploader.destroy(image.public_id);
         }
 
         return res.status(200).json({ message: "Product deleted" });

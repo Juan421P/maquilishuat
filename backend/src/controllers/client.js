@@ -1,4 +1,5 @@
 import clientModel from "../models/client.js";
+import { v2 as cloudinary } from "cloudinary";
 
 const clientController = {};
 
@@ -27,9 +28,26 @@ clientController.updateClient = async (req, res) => {
             return res.status(400).json({ message: "Invalid date" });
         }
 
+        const updateData = { name, lastname, birthdate, email, password, verified_email, loginAttemps, timeOut };
+
+        if (req.file) {
+            const clientFound = await clientModel.findById(req.params.id);
+
+            if (!clientFound) {
+                return res.status(404).json({ message: "Client not found" });
+            }
+
+            if (clientFound.picture_id) {
+                await cloudinary.uploader.destroy(clientFound.picture_id);
+            }
+
+            updateData.picture = req.file.path;
+            updateData.picture_id = req.file.filename;
+        }
+
         const clientUpdated = await clientModel.findByIdAndUpdate(
             req.params.id,
-            { name, lastname, birthdate, email, password, verified_email, loginAttemps, timeOut },
+            updateData,
             { new: true }
         );
 
