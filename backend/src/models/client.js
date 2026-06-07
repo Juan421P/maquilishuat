@@ -51,6 +51,12 @@ const schema = new Schema({
     picture_id: {
         type: String,
         trim: true
+    },
+    loginAttemps: {
+        type: Number
+    },
+    timeOut: {
+        type: Date
     }
 }, {
     timestamps: true
