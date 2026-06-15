@@ -116,7 +116,9 @@
 /* Register 2-col row */
 .reg-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 @media (max-width: 480px) { .reg-row { grid-template-columns: 1fr; } }
-.input-wrap--date input { min-width: 0; }
+.reg-row .field { min-width: 0; }
+.input-wrap { min-width: 0; }
+.input-wrap input { min-width: 0; }
 
 /* Success state for ForgotPassword */
 .auth-success-state { text-align: center; }

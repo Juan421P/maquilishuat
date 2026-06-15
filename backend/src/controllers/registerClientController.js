@@ -13,7 +13,7 @@ registerClientController.register = async (req, res) => {
     try {
         const existingClient = await clientModel.findOne({ email });
         if (existingClient) {
-            return res.status(400).json({ message: "Client already exists" });
+            return res.status(400).json({ message: "Ya existe una cuenta registrada con este correo" });
         }
 
         const randomNumber = crypto.randomBytes(3).toString("hex");
@@ -61,11 +61,28 @@ registerClientController.verifyCode = async (req, res) => {
 
         const token = req.cookies.RegistrationCookie;
 
-        const decoded = jsonwebtoken.verify(token, config.jwt.secret);
+        if (!token) {
+            return res.status(400).json({ message: "El código expiró o la sesión es inválida, vuelve a registrarte" });
+        }
+
+        let decoded;
+        try {
+            decoded = jsonwebtoken.verify(token, config.jwt.secret);
+        } catch (jwtError) {
+            res.clearCookie("RegistrationCookie");
+            return res.status(400).json({ message: "El código expiró o la sesión es inválida, vuelve a registrarte" });
+        }
+
         const { randomNumber: storedCode, name, lastname, birthdate, email, password } = decoded;
 
         if (verificationCodeRequest !== storedCode) {
-            return res.status(400).json({ message: "Invalid code" });
+            return res.status(400).json({ message: "Código incorrecto" });
+        }
+
+        const existingClient = await clientModel.findOne({ email });
+        if (existingClient) {
+            res.clearCookie("RegistrationCookie");
+            return res.status(400).json({ message: "Ya existe una cuenta registrada con este correo" });
         }
 
         const newClient = new clientModel({
@@ -84,6 +101,10 @@ registerClientController.verifyCode = async (req, res) => {
         return res.status(200).json({ message: "Client registered" });
     } catch (error) {
         console.log("error" + error);
+        if (error.name === "ValidationError") {
+            const message = Object.values(error.errors)[0]?.message || "Datos inválidos";
+            return res.status(400).json({ message });
+        }
         return res.status(500).json({ message: "Internal server error" });
     }
 };

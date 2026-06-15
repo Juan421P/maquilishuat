@@ -37,7 +37,7 @@ const schema = new Schema({
                 const monthDiff = today.getMonth() - birthdate.getMonth();
                 if(monthDiff < 0 || monthDiff === 0 && today.getDate() < birthdate.getDate()) age--;
                 return (age >= 18);
-            }, message: 'must be 18 or older'
+            }, message: 'Debes ser mayor de 18 años'
         }
     },
     verified_email: {
