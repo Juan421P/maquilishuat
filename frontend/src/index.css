@@ -285,6 +285,11 @@ input::placeholder, textarea::placeholder { color: var(--text-placeholder); }
 .modal-close:hover { background:var(--gray-200); color:var(--text-primary); }
 .modal-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; padding:18px 22px; }
 .modal-actions { display:flex; gap:9px; justify-content:flex-end; padding:0 22px 20px; }
+@media (max-width: 560px) {
+  .modal-grid { grid-template-columns:1fr; }
+  .modal-overlay { padding:0; align-items:flex-end; }
+  .modal-card { max-width:100%; border-radius:var(--radius-2xl) var(--radius-2xl) 0 0; max-height:92vh; overflow-y:auto; }
+}
 .btn-cancel {
   padding:9px 16px; border-radius:var(--radius-md);
   font-size:13px; font-weight:600; color:var(--text-secondary);

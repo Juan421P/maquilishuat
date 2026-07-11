@@ -1,8 +1,28 @@
+import { useState, useEffect } from "react";
 import { T, GRAD } from "../utils/theme";
 import AppBar from "../layout/AppBar";
 import Ic from "../components/Ic";
+import { salesAPI } from "../services/api";
+import { formatPrice } from "../utils/format";
+
+const ESTADOS_PAGO_LABEL = { pending: "Pendiente", paid: "Pagado", partial: "Parcial" };
+const PAGO_COLOR = {
+  paid: { bg: "#dcfce7", color: "#16a34a" },
+  partial: { bg: "#fef9c3", color: "#a16207" },
+  pending: { bg: "#fee2e2", color: "#dc2626" },
+};
 
 export default function ProfilePage({ user, onLogout }) {
+  const [pedidos, setPedidos] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    salesAPI.getMine()
+      .then(setPedidos)
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
       <AppBar title="Mi cuenta" />
@@ -36,6 +56,34 @@ export default function ProfilePage({ user, onLogout }) {
                 </div>
               </div>
             ))}
+          </div>
+
+          {/* Historial de pedidos */}
+          <div style={{ background: T.surface, borderRadius: 12, border: `1px solid ${T.border}`, padding: "13px 14px", marginBottom: 14 }}>
+            <p style={{ fontSize: 13, fontWeight: 800, color: T.text1, marginBottom: 10 }}>Mis pedidos</p>
+            {loading && <p style={{ fontSize: 12, color: T.textMut }}>Cargando...</p>}
+            {!loading && pedidos.length === 0 && (
+              <p style={{ fontSize: 12, color: T.textMut }}>Todavía no tienes pedidos.</p>
+            )}
+            {!loading && pedidos.length > 0 && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {pedidos.map(p => {
+                  const color = PAGO_COLOR[p.payment_status] || PAGO_COLOR.pending;
+                  const total = p.shopping_cart_id?.total_with_discount ?? p.shopping_cart_id?.total ?? 0;
+                  return (
+                    <div key={p._id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: `1px solid ${T.border}` }}>
+                      <div>
+                        <p style={{ fontSize: 12.5, fontWeight: 700, color: T.text1 }}>#{p._id.slice(-6).toUpperCase()}</p>
+                        <p style={{ fontSize: 11, color: T.textMut }}>{formatPrice(total)}</p>
+                      </div>
+                      <span style={{ background: color.bg, color: color.color, fontSize: 10.5, fontWeight: 700, padding: "3px 10px", borderRadius: 99 }}>
+                        {ESTADOS_PAGO_LABEL[p.payment_status] || p.payment_status || "—"}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* Brand card */}

@@ -1,11 +1,28 @@
+import { useState, useEffect } from "react";
 import { T } from "../utils/theme";
 
-const isMobile = () =>
-  typeof window !== "undefined" && window.innerWidth <= 768;
+const QUERY = "(max-width: 768px)";
+
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(
+    () => typeof window !== "undefined" && window.matchMedia(QUERY).matches
+  );
+
+  useEffect(() => {
+    const mql = window.matchMedia(QUERY);
+    const handler = (e) => setIsMobile(e.matches);
+    mql.addEventListener("change", handler);
+    return () => mql.removeEventListener("change", handler);
+  }, []);
+
+  return isMobile;
+}
 
 export default function PhoneShell({ children }) {
+  const isMobile = useIsMobile();
+
   // En móvil real: ocupa toda la pantalla, sin frame
-  if (isMobile()) {
+  if (isMobile) {
     return (
       <div style={{
         width: "100%", minHeight: "100dvh",

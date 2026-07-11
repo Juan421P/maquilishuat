@@ -1,15 +1,19 @@
 import { useState, useEffect } from "react";
-import { Plus, Search, Pencil, Trash2, CheckCircle, Clock, Truck, XCircle, ChevronRight, X, RefreshCw, AlertCircle } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, CheckCircle, Clock, Truck, XCircle, ChevronRight, RefreshCw, AlertCircle } from "lucide-react";
+import { toast } from "react-toastify";
+import Modal from "../components/Modal";
+import ConfirmDialog from "../components/ConfirmDialog";
+import StatusBadge from "../components/StatusBadge";
 import { salesAPI } from "../services/api";
 import "./OrderManagement.css";
 
 const ESTADOS_PAGO = ["pending", "paid", "partial"];
 const ESTADOS_PAGO_LABEL = { pending: "Pendiente", paid: "Pagado", partial: "Parcial" };
-const PAGO_BADGE = { paid: "badge-green", partial: "badge-yellow", pending: "badge-red" };
+const PAGO_VARIANT = { paid: "green", partial: "yellow", pending: "red" };
 
 const METODOS_PAGO = ["Efectivo", "Transferencia", "Tarjeta", "Otro"];
 
-function Modal({ pedido, onClose, onSave }) {
+function PedidoModal({ pedido, onClose, onSave }) {
   const [form, setForm] = useState(pedido
     ? {
         delivery_address: pedido.delivery_address || "",
@@ -33,47 +37,46 @@ function Modal({ pedido, onClose, onSave }) {
     try {
       if (pedido) {
         await salesAPI.update(pedido._id, form);
+        toast.success("Pedido actualizado");
       }
       onSave();
     } catch (e) {
       setErr(e.message || "Error al guardar");
+      toast.error(e.message || "Error al guardar el pedido");
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-card" onClick={e => e.stopPropagation()}>
-        <div className="modal-header">
-          <h3>{pedido ? "Editar pedido" : "Detalle de pedido"}</h3>
-          <button className="modal-close" onClick={onClose}><X size={16} /></button>
+    <Modal
+      title={pedido ? "Editar pedido" : "Detalle de pedido"}
+      onClose={onClose}
+      footer={<>
+        <button className="btn-cancel" onClick={onClose}>Cancelar</button>
+        {pedido && <button className="btn-save" onClick={handleSave} disabled={saving}>{saving ? "Guardando..." : "Guardar"}</button>}
+      </>}
+    >
+      {err && <div style={{ background: "#fee2e2", color: "#dc2626", padding: "8px 12px", borderRadius: 6, fontSize: 13, margin: "0 22px 10px" }}>{err}</div>}
+      <div className="modal-grid">
+        <div className="field" style={{ gridColumn: "1/-1" }}>
+          <label>Dirección de entrega</label>
+          <input value={form.delivery_address} onChange={set("delivery_address")} placeholder="Col. Escalón, San Salvador" />
         </div>
-        {err && <div style={{ background: "#fee2e2", color: "#dc2626", padding: "8px 12px", borderRadius: 6, fontSize: 13, marginBottom: 10 }}>{err}</div>}
-        <div className="modal-grid">
-          <div className="field" style={{ gridColumn: "1/-1" }}>
-            <label>Dirección de entrega</label>
-            <input value={form.delivery_address} onChange={set("delivery_address")} placeholder="Col. Escalón, San Salvador" />
-          </div>
-          <div className="field">
-            <label>Método de pago</label>
-            <select value={form.payment_method} onChange={set("payment_method")}>
-              {METODOS_PAGO.map(m => <option key={m} value={m}>{m}</option>)}
-            </select>
-          </div>
-          <div className="field">
-            <label>Estado de pago</label>
-            <select value={form.payment_status} onChange={set("payment_status")}>
-              {ESTADOS_PAGO.map(s => <option key={s} value={s}>{ESTADOS_PAGO_LABEL[s]}</option>)}
-            </select>
-          </div>
+        <div className="field">
+          <label>Método de pago</label>
+          <select value={form.payment_method} onChange={set("payment_method")}>
+            {METODOS_PAGO.map(m => <option key={m} value={m}>{m}</option>)}
+          </select>
         </div>
-        <div className="modal-actions">
-          <button className="btn-cancel" onClick={onClose}>Cancelar</button>
-          {pedido && <button className="btn-save" onClick={handleSave} disabled={saving}>{saving ? "Guardando..." : "Guardar"}</button>}
+        <div className="field">
+          <label>Estado de pago</label>
+          <select value={form.payment_status} onChange={set("payment_status")}>
+            {ESTADOS_PAGO.map(s => <option key={s} value={s}>{ESTADOS_PAGO_LABEL[s]}</option>)}
+          </select>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }
 
@@ -118,8 +121,9 @@ export default function OrderManagement() {
       await salesAPI.delete(id);
       setDeleteId(null);
       load();
+      toast.success("Pedido eliminado");
     } catch (e) {
-      alert(e.message || "Error al eliminar");
+      toast.error(e.message || "Error al eliminar");
     } finally {
       setDeleting(false);
     }
@@ -196,9 +200,9 @@ export default function OrderManagement() {
                   <td>{p.delivery_address || "—"}</td>
                   <td>{p.payment_method || "—"}</td>
                   <td>
-                    <span className={`badge ${PAGO_BADGE[p.payment_status] || "badge-yellow"}`}>
+                    <StatusBadge variant={PAGO_VARIANT[p.payment_status]}>
                       {getPaymentLabel(p.payment_status)}
-                    </span>
+                    </StatusBadge>
                   </td>
                   <td className="fecha-cell">{fmt(p.createdAt)}</td>
                   <td>
@@ -218,20 +222,15 @@ export default function OrderManagement() {
         </div>
       </div>
 
-      {modal && <Modal pedido={modal.pedido} onClose={() => setModal(null)} onSave={() => { setModal(null); load(); }} />}
+      {modal && <PedidoModal pedido={modal.pedido} onClose={() => setModal(null)} onSave={() => { setModal(null); load(); }} />}
       {deleteId && (
-        <div className="modal-overlay" onClick={() => setDeleteId(null)}>
-          <div className="modal-card confirm" onClick={e => e.stopPropagation()}>
-            <h3>¿Eliminar pedido?</h3>
-            <p>Esta acción es irreversible.</p>
-            <div className="modal-actions">
-              <button className="btn-cancel" onClick={() => setDeleteId(null)}>Cancelar</button>
-              <button className="btn-danger" onClick={() => handleDelete(deleteId)} disabled={deleting}>
-                {deleting ? "Eliminando..." : "Eliminar"}
-              </button>
-            </div>
-          </div>
-        </div>
+        <ConfirmDialog
+          title="¿Eliminar pedido?"
+          message="Esta acción es irreversible."
+          onCancel={() => setDeleteId(null)}
+          onConfirm={() => handleDelete(deleteId)}
+          confirming={deleting}
+        />
       )}
     </div>
   );

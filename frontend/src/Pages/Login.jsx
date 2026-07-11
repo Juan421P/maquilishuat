@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Droplets, Mail, Lock, Eye, EyeOff, ArrowRight } from "lucide-react";
+import { toast } from "react-toastify";
 import { useAuth } from "../context/AuthContext";
 import bg from "../assets/BG.png";
 import "./Login.css";
@@ -17,9 +18,12 @@ export default function Login() {
     setError("");
     const result = await login(form.email, form.password);
     if (result.ok) {
-      navigate("/dashboard");
+      toast.success("Sesión iniciada");
+      navigate(result.userType === "Admin" ? "/dashboard" : "/catalogo");
     } else {
-      setError(result.message || "Correo o contraseña incorrectos");
+      const msg = result.message || "Correo o contraseña incorrectos";
+      setError(msg);
+      toast.error(msg);
     }
   };
 

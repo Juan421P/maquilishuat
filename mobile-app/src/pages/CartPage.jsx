@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { toast } from "react-toastify";
 import { T, GRAD } from "../utils/theme";
 import { cartAPI, salesAPI } from "../services/api";
 import { formatPrice, cartTotal } from "../utils/format";
@@ -28,9 +29,12 @@ export default function CartPage({ cart, changeQty, removeItem, clearCart, onOrd
       const cartRes  = await cartAPI.create(products);
       await salesAPI.create(cartRes.cart._id, addr, metodo);
       clearCart();
+      toast.success("¡Pedido registrado con éxito!");
       onOrderSuccess();
     } catch (e) {
-      setErr(e.message || "Error al procesar el pedido");
+      const msg = e.message || "Error al procesar el pedido";
+      setErr(msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }

@@ -1,31 +1,12 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Droplets, ShoppingCart, Trash2, ArrowLeft, CheckCircle2, Plus, Minus } from "lucide-react";
+import { Trash2, ArrowLeft, CheckCircle2, Plus, Minus, LogIn } from "lucide-react";
+import { toast } from "react-toastify";
 import ProductIcon from "../components/ProductIcon";
+import PublicNav from "../components/PublicNav";
 import { cartAPI, salesAPI } from "../services/api";
+import { useAuth } from "../context/AuthContext";
 import "./Home.css";
-
-function PubNav() {
-  return (
-    <nav className="pub-nav">
-      <div className="pub-nav-inner">
-        <div className="pub-logo">
-          <div className="pub-logo-icon"><Droplets size={18} /></div>
-          <span className="pub-logo-name">Maquilishuat</span>
-        </div>
-        <div className="pub-nav-links">
-          <Link to="/home">Inicio</Link>
-          <Link to="/catalogo">Productos</Link>
-          <Link to="/nosotros">Nosotros</Link>
-          <Link to="/contacto">Contacto</Link>
-        </div>
-        <div className="pub-nav-actions">
-          <Link to="/login" className="pub-login-btn">Ingresar</Link>
-        </div>
-      </div>
-    </nav>
-  );
-}
 
 export default function Carrito() {
   const [items, setItems] = useState(() => {
@@ -37,6 +18,7 @@ export default function Carrito() {
   const [confirming, setConfirming] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const { isLoggedIn } = useAuth();
 
   const cambiar = (id, delta) => {
     const updated = items.map(x => x.id === id ? { ...x, qty: x.qty + delta } : x).filter(x => x.qty > 0);
@@ -55,21 +37,25 @@ export default function Carrito() {
   const total = subtotal + envio;
 
   const handleConfirm = async () => {
+    if (!isLoggedIn) { setError("Debes iniciar sesión para confirmar el pedido"); return; }
     if (!direccion.trim()) { setError("Ingresa la dirección de entrega"); return; }
     setSubmitting(true);
     setError("");
     try {
-      // 1. Crear carrito en backend
+      // 1. Crear carrito en backend (el user_id lo asocia el backend con la sesión)
       const products = items.map(x => ({ product_id: x.id, amount: x.qty }));
-      const cartRes = await cartAPI.create(products, undefined, 0);
+      const cartRes = await cartAPI.create(products, 0);
       // 2. Crear venta
       await salesAPI.create(cartRes.cart._id, direccion, metodo, "pending");
       // 3. Limpiar carrito local
       sessionStorage.removeItem("maq_carrito");
       setItems([]);
       setPedidoOk(true);
+      toast.success("¡Pedido registrado con éxito!");
     } catch (e) {
-      setError(e.message || "Error al procesar el pedido. Verifica que los productos estén disponibles.");
+      const msg = e.message || "Error al procesar el pedido. Verifica que los productos estén disponibles.";
+      setError(msg);
+      toast.error(msg);
     } finally {
       setSubmitting(false);
     }
@@ -78,7 +64,7 @@ export default function Carrito() {
   if (pedidoOk) {
     return (
       <div className="public-page">
-        <PubNav />
+        <PublicNav />
         <div style={{ textAlign: "center", padding: "100px 24px 80px" }}>
           <div style={{ width: 72, height: 72, borderRadius: "50%", background: "var(--brand-50)", border: "2px solid var(--brand-100)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--brand-500)", margin: "0 auto 18px" }}>
             <CheckCircle2 size={32} />
@@ -100,7 +86,7 @@ export default function Carrito() {
   if (items.length === 0) {
     return (
       <div className="public-page">
-        <PubNav />
+        <PublicNav />
         <div className="carrito-empty" style={{ padding: "120px 24px 80px" }}>
           <div className="carrito-empty-icon">🛒</div>
           <h2>Tu carrito está vacío</h2>
@@ -113,7 +99,7 @@ export default function Carrito() {
 
   return (
     <div className="public-page">
-      <PubNav />
+      <PublicNav />
       <div className="carrito-layout">
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
@@ -154,7 +140,16 @@ export default function Carrito() {
           <div className="carrito-line"><span>Envío a domicilio</span><span>${envio.toFixed(2)}</span></div>
           <div className="carrito-line total"><span>Total</span><span>${total.toFixed(2)}</span></div>
 
-          {!confirming ? (
+          {!isLoggedIn ? (
+            <div style={{ marginTop: 12, textAlign: "center" }}>
+              <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 10 }}>
+                Inicia sesión para confirmar tu pedido.
+              </p>
+              <Link to="/login" className="carrito-checkout" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, textDecoration: "none" }}>
+                <LogIn size={15} /> Iniciar sesión
+              </Link>
+            </div>
+          ) : !confirming ? (
             <button className="carrito-checkout" onClick={() => setConfirming(true)}>
               Proceder al pedido →
             </button>

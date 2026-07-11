@@ -13,8 +13,7 @@ const productSchema = new Schema({
     stock: {type: Number},
     description: {type: String}
 },{
-    timestamps: true,
-    strict: false
+    timestamps: true
 })
 
 export default model("products", productSchema)

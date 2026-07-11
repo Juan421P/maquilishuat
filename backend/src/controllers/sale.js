@@ -13,6 +13,28 @@ saleController.getSales = async (req, res) => {
     }
 };
 
+// SELECT de las ventas del cliente autenticado
+saleController.getMySales = async (req, res) => {
+    try {
+        const sales = await saleModel.find()
+            .populate({
+                path: "shopping_cart_id",
+                populate: { path: "products.product_id", select: "name price images" }
+            });
+
+        const mySales = sales.filter(sale =>
+            sale.shopping_cart_id &&
+            sale.shopping_cart_id.user_id &&
+            sale.shopping_cart_id.user_id.toString() === req.user.id
+        );
+
+        return res.status(200).json(mySales);
+    } catch (error) {
+        console.log("error" + error);
+        return res.status(500).json({ message: "Internal server error" });
+    }
+};
+
 //SELECT por id
 saleController.getSaleById = async (req, res) => {
     try {

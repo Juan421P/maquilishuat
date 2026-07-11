@@ -1,8 +1,9 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { Bell, ChevronDown, Settings, User, LogOut, Search, Sun, Moon, X } from "lucide-react";
+import { Bell, ChevronDown, Settings, User, LogOut, Search, Sun, Moon, X, Menu } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { useTheme } from "../context/ThemeContext";
 import { useNotifs } from "../context/NotifContext";
+import { useAuth } from "../context/AuthContext";
 import "./Header.css";
 
 const PAGE_TITLES = {
@@ -20,11 +21,12 @@ const SEARCH_DATA = [
   { icon:"📊", label:"Informes",  sub:"Reportes y estadísticas", route:"/informes" },
 ];
 
-export default function Header() {
+export default function Header({ onMenuToggle }) {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const { isDark, toggle: toggleTheme } = useTheme();
   const { notifs, marcarLeido, marcarTodos, eliminar, unread } = useNotifs();
+  const { logout } = useAuth();
   const [menuOpen, setMenuOpen]     = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [notifOpen, setNotifOpen]   = useState(false);
@@ -56,6 +58,9 @@ export default function Header() {
   return (
     <>
       <header className="header">
+        <button className="icon-btn menu-btn" onClick={onMenuToggle} aria-label="Abrir menú">
+          <Menu size={19}/>
+        </button>
         <div className="header-left">
           <div className="header-breadcrumb">
             <span>Maquilishuat</span>
@@ -97,7 +102,7 @@ export default function Header() {
                   <User size={14}/> Mi perfil
                 </button>
                 <hr/>
-                <button className="dropdown-item logout" onClick={()=>navigate("/login")}>
+                <button className="dropdown-item logout" onClick={async ()=>{ setMenuOpen(false); await logout(); navigate("/login"); }}>
                   <LogOut size={14}/> Cerrar sesión
                 </button>
               </div>

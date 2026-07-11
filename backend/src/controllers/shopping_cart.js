@@ -42,6 +42,9 @@ const buildCartProducts = async (products) => {
         if (!productFound) {
             throw new Error(`product ${item.product_id} not found`);
         }
+        if (item.amount > productFound.stock) {
+            throw new Error(`stock insuficiente para ${productFound.name}`);
+        }
         const subtotal = productFound.price * item.amount;
         total += subtotal;
         cartProducts.push({
@@ -55,12 +58,12 @@ const buildCartProducts = async (products) => {
 
 controller.post = async (req, res) => {
     try {
-        const { products, user_id, discount } = req.body;
+        const { products, discount } = req.body;
         const { cartProducts, total } = await buildCartProducts(products);
         const appliedDiscount = discount || 0;
         const newCart = new cartModel({
             products: cartProducts,
-            user_id,
+            user_id: req.user.id,
             total,
             discount: appliedDiscount,
             total_with_discount: total - appliedDiscount

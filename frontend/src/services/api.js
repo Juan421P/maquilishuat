@@ -117,6 +117,8 @@ export const clientsAPI = {
 export const salesAPI = {
   getAll: () => request("/sales"),
 
+  getMine: () => request("/sales/mine"),
+
   getById: (id) => request(`/sales/${id}`),
 
   create: (shopping_cart_id, delivery_address, payment_method, payment_status) =>
@@ -138,10 +140,11 @@ export const cartAPI = {
 
   getById: (id) => request(`/shopping-carts/${id}`),
 
-  create: (products, user_id, discount = 0) =>
+  // user_id ya no se envía: el backend lo toma del JWT de la sesión
+  create: (products, discount = 0) =>
     request("/shopping-carts", {
       method: "POST",
-      body: JSON.stringify({ products, user_id, discount }),
+      body: JSON.stringify({ products, discount }),
     }),
 
   update: (id, products, user_id, discount = 0) =>
@@ -151,6 +154,20 @@ export const cartAPI = {
     }),
 
   delete: (id) => request(`/shopping-carts/${id}`, { method: "DELETE" }),
+};
+
+// ─── Reviews / valoraciones ────────────────────────────────────────────────────
+
+export const reviewsAPI = {
+  getByProduct: (productId) => request(`/reviews/product/${productId}`),
+
+  create: (product_id, rating, comment) =>
+    request("/reviews", {
+      method: "POST",
+      body: JSON.stringify({ product_id, rating, comment }),
+    }),
+
+  getMine: () => request("/reviews/mine"),
 };
 
 // ─── Admin ────────────────────────────────────────────────────────────────────

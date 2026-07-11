@@ -1,15 +1,19 @@
 import { Router } from 'express';
 import saleController from '../controllers/sale.js';
+import { verifyToken, requireRole } from '../middleware/auth.js';
 
 const router = Router();
 
 router.route('/')
-    .get(saleController.getSales)
-    .post(saleController.insertSale);
+    .get(verifyToken, requireRole('Admin'), saleController.getSales)
+    .post(verifyToken, saleController.insertSale);
+
+router.route('/mine')
+    .get(verifyToken, saleController.getMySales);
 
 router.route('/:id')
-    .get(saleController.getSaleById)
-    .put(saleController.updateSale)
-    .delete(saleController.deleteSale);
+    .get(verifyToken, requireRole('Admin'), saleController.getSaleById)
+    .put(verifyToken, requireRole('Admin'), saleController.updateSale)
+    .delete(verifyToken, requireRole('Admin'), saleController.deleteSale);
 
 export default router;

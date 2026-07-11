@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { toast } from "react-toastify";
 import { T } from "../utils/theme";
 import { useAuth } from "../context/AuthContext";
 import AuthHeader from "../layout/AuthHeader";
@@ -18,8 +19,8 @@ export default function LoginPage({ onSuccess, onRegister, onForgot, onBack }) {
   const handle = async () => {
     if (!form.email || !form.pw) { setErr("Completa todos los campos"); return; }
     setLoading(true);
-    try { await login(form.email, form.pw); onSuccess(); }
-    catch (e) { setErr(e.message || "Correo o contraseña incorrectos"); }
+    try { await login(form.email, form.pw); toast.success("Sesión iniciada"); onSuccess(); }
+    catch (e) { const msg = e.message || "Correo o contraseña incorrectos"; setErr(msg); toast.error(msg); }
     finally { setLoading(false); }
   };
 

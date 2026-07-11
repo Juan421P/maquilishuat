@@ -27,7 +27,10 @@ registerClientController.register = async (req, res) => {
         res.cookie("RegistrationCookie", token, { maxAge: 15 * 60 * 1000 });
 
         const transporter = nodemailer.createTransport({
-            service: "gmail",
+            host: "smtp.gmail.com",
+            port: 465,
+            secure: true,
+            family: 4,
             auth: {
                 user: config.email.user,
                 pass: config.email.password

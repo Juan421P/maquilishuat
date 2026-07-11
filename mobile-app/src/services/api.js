@@ -71,4 +71,19 @@ export const salesAPI = {
       method: "POST",
       body: JSON.stringify({ shopping_cart_id, delivery_address, payment_method, payment_status }),
     }),
+
+  getMine: () => req("/sales/mine"),
+};
+
+// ─── Reviews / valoraciones ────────────────────────────────────────────────
+export const reviewsAPI = {
+  getByProduct: (productId) => req(`/reviews/product/${productId}`),
+
+  create: (product_id, rating, comment) =>
+    req("/reviews", {
+      method: "POST",
+      body: JSON.stringify({ product_id, rating, comment }),
+    }),
+
+  getMine: () => req("/reviews/mine"),
 };

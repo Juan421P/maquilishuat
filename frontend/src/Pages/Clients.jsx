@@ -1,5 +1,9 @@
 import { useState, useEffect } from "react";
-import { Plus, Search, Pencil, Trash2, Phone, MapPin, Calendar, RefreshCw, X, AlertCircle } from "lucide-react";
+import { Search, Pencil, Trash2, Phone, Calendar, RefreshCw, AlertCircle } from "lucide-react";
+import { toast } from "react-toastify";
+import Modal from "../components/Modal";
+import ConfirmDialog from "../components/ConfirmDialog";
+import StatusBadge from "../components/StatusBadge";
 import { clientsAPI } from "../services/api";
 import "./OrderManagement.css";
 import "./Clients.css";
@@ -32,47 +36,46 @@ function ClientModal({ client, onClose, onSave }) {
         fd.append("email", form.email);
         fd.append("password", "placeholder_no_change");
         await clientsAPI.update(client._id, fd);
+        toast.success("Cliente actualizado");
       }
       onSave();
     } catch (e) {
       setErr(e.message || "Error al guardar");
+      toast.error(e.message || "Error al guardar el cliente");
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-card" onClick={e => e.stopPropagation()}>
-        <div className="modal-header">
-          <h3>{client ? "Editar cliente" : "Ver cliente"}</h3>
-          <button className="modal-close" onClick={onClose}><X size={16} /></button>
+    <Modal
+      title={client ? "Editar cliente" : "Ver cliente"}
+      onClose={onClose}
+      footer={<>
+        <button className="btn-cancel" onClick={onClose}>Cancelar</button>
+        {client && (
+          <button className="btn-save" onClick={handleSave} disabled={saving}>
+            {saving ? "Guardando..." : "Guardar"}
+          </button>
+        )}
+      </>}
+    >
+      {err && <div style={{ background: "#fee2e2", color: "#dc2626", padding: "8px 12px", borderRadius: 6, fontSize: 13, margin: "0 22px 10px" }}><AlertCircle size={13} style={{ display: "inline", marginRight: 6 }} />{err}</div>}
+      <div className="modal-grid">
+        <div className="field">
+          <label>Nombre</label>
+          <input value={form.name} onChange={set("name")} placeholder="Nombre" />
         </div>
-        {err && <div style={{ background: "#fee2e2", color: "#dc2626", padding: "8px 12px", borderRadius: 6, fontSize: 13, marginBottom: 10 }}><AlertCircle size={13} style={{ display: "inline", marginRight: 6 }} />{err}</div>}
-        <div className="modal-grid">
-          <div className="field">
-            <label>Nombre</label>
-            <input value={form.name} onChange={set("name")} placeholder="Nombre" />
-          </div>
-          <div className="field">
-            <label>Apellido</label>
-            <input value={form.lastname} onChange={set("lastname")} placeholder="Apellido" />
-          </div>
-          <div className="field" style={{ gridColumn: "1/-1" }}>
-            <label>Correo electrónico</label>
-            <input value={form.email} onChange={set("email")} placeholder="correo@ejemplo.com" />
-          </div>
+        <div className="field">
+          <label>Apellido</label>
+          <input value={form.lastname} onChange={set("lastname")} placeholder="Apellido" />
         </div>
-        <div className="modal-actions">
-          <button className="btn-cancel" onClick={onClose}>Cancelar</button>
-          {client && (
-            <button className="btn-save" onClick={handleSave} disabled={saving}>
-              {saving ? "Guardando..." : "Guardar"}
-            </button>
-          )}
+        <div className="field" style={{ gridColumn: "1/-1" }}>
+          <label>Correo electrónico</label>
+          <input value={form.email} onChange={set("email")} placeholder="correo@ejemplo.com" />
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }
 
@@ -111,8 +114,9 @@ export default function Clients() {
       await clientsAPI.delete(id);
       setDeleteId(null);
       load();
+      toast.success("Cliente eliminado");
     } catch (e) {
-      alert(e.message || "Error al eliminar");
+      toast.error(e.message || "Error al eliminar");
     } finally {
       setDeleting(false);
     }
@@ -158,9 +162,9 @@ export default function Clients() {
                 <div>
                   <p className="client-card-name">{c.name} {c.lastname}</p>
                   <div className="client-card-status">
-                    <span className={`badge ${c.verified_email ? "badge-green" : "badge-yellow"}`}>
+                    <StatusBadge variant={c.verified_email ? "green" : "yellow"}>
                       {c.verified_email ? "Verificado" : "Sin verificar"}
-                    </span>
+                    </StatusBadge>
                   </div>
                 </div>
               </div>
@@ -183,18 +187,13 @@ export default function Clients() {
 
       {modal && <ClientModal client={modal.client} onClose={() => setModal(null)} onSave={() => { setModal(null); load(); }} />}
       {deleteId && (
-        <div className="modal-overlay" onClick={() => setDeleteId(null)}>
-          <div className="modal-card confirm" onClick={e => e.stopPropagation()}>
-            <h3>¿Eliminar cliente?</h3>
-            <p>Esta acción es irreversible y eliminará todos los datos del cliente.</p>
-            <div className="modal-actions">
-              <button className="btn-cancel" onClick={() => setDeleteId(null)}>Cancelar</button>
-              <button className="btn-danger" onClick={() => handleDelete(deleteId)} disabled={deleting}>
-                {deleting ? "Eliminando..." : "Eliminar"}
-              </button>
-            </div>
-          </div>
-        </div>
+        <ConfirmDialog
+          title="¿Eliminar cliente?"
+          message="Esta acción es irreversible y eliminará todos los datos del cliente."
+          onCancel={() => setDeleteId(null)}
+          onConfirm={() => handleDelete(deleteId)}
+          confirming={deleting}
+        />
       )}
     </div>
   );

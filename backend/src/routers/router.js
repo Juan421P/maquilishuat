@@ -8,6 +8,7 @@ import logout from './logout.js';
 import product from './product.js';
 import sale from './sale.js';
 import shoppingCart from './shopping_cart.js';
+import review from './review.js';
 
 const router = Router();
 
@@ -16,6 +17,7 @@ router.use('/clients', client);
 router.use('/products', product);
 router.use('/sales', sale);
 router.use('/shopping-carts', shoppingCart);
+router.use('/reviews', review);
 router.use('/login', loginClient);
 router.use('/registerClient', registerClient);
 router.use('/recoveryClient', recoveryClient);

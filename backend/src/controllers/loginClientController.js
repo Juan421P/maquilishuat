@@ -1,8 +1,14 @@
 import clientModel from "../models/client.js";
+import adminModel from "../models/admin.js";
 import jsonwebtoken from "jsonwebtoken";
 import { config } from "../../config.js";
 
 const loginClientController = {};
+
+const MODELS_BY_TYPE = [
+    { userType: "Client", model: clientModel },
+    { userType: "Admin", model: adminModel },
+];
 
 loginClientController.login = async (req, res) => {
     const { email, password } = req.body;
@@ -14,45 +20,55 @@ loginClientController.login = async (req, res) => {
     }
 
     try {
-        const clientFound = await clientModel.findOne({ email }).select('+password');
+        let userType = null;
+        let userFound = null;
 
-        if (!clientFound) {
+        for (const entry of MODELS_BY_TYPE) {
+            const found = await entry.model.findOne({ email }).select('+password');
+            if (found) {
+                userType = entry.userType;
+                userFound = found;
+                break;
+            }
+        }
+
+        if (!userFound) {
             return res.status(404).json({ message: "Client not found" });
         }
 
-        if (clientFound.timeOut && clientFound.timeOut > Date.now()) {
+        if (userFound.timeOut && userFound.timeOut > Date.now()) {
             return res.status(403).json({ message: "Cuenta bloqueada" });
         }
 
-        const isMatch = await clientFound.comparePassword(password);
+        const isMatch = await userFound.comparePassword(password);
 
         if (!isMatch) {
-            clientFound.loginAttemps = (clientFound.loginAttemps || 0) + 1;
+            userFound.loginAttemps = (userFound.loginAttemps || 0) + 1;
 
-            if (clientFound.loginAttemps >= 5) {
-                clientFound.timeOut = new Date(Date.now() + 5 * 60 * 1000);
-                clientFound.loginAttemps = 0;
-                await clientFound.save();
+            if (userFound.loginAttemps >= 5) {
+                userFound.timeOut = new Date(Date.now() + 5 * 60 * 1000);
+                userFound.loginAttemps = 0;
+                await userFound.save();
                 return res.status(403).json({ message: "Cuenta bloqueada por multiples intentos fallidos" });
             }
 
-            await clientFound.save();
+            await userFound.save();
             return res.status(403).json({ message: "Credenciales incorrectas" });
         }
 
-        clientFound.loginAttemps = 0;
-        clientFound.timeOut = null;
-        await clientFound.save();
+        userFound.loginAttemps = 0;
+        userFound.timeOut = null;
+        await userFound.save();
 
         const token = jsonwebtoken.sign(
-            { id: clientFound._id, userType: "Client" },
+            { id: userFound._id, userType },
             config.jwt.secret,
             { expiresIn: "30d" }
         );
 
         res.cookie("authCookie", token);
 
-        return res.status(200).json({ message: "Login exitoso" });
+        return res.status(200).json({ message: "Login exitoso", userType });
     } catch (error) {
         console.log("error" + error);
         return res.status(500).json({ message: "Internal server error" });

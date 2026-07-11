@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Droplets, Mail, Lock, User, Calendar, Eye, EyeOff, ArrowRight, CheckCircle2 } from "lucide-react";
+import { toast } from "react-toastify";
 import { authAPI } from "../services/api";
 import bg from "../assets/BG.png";
 import "./Login.css";
@@ -39,9 +40,12 @@ export default function Register() {
     setApiError("");
     try {
       await authAPI.register(form.name, form.lastname, form.birth, form.email, form.password);
+      toast.info("Te enviamos un código de verificación a tu correo");
       setStep(2);
     } catch (err) {
-      setApiError(err.message || "Error al registrar");
+      const msg = err.message || "Error al registrar";
+      setApiError(msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -54,9 +58,12 @@ export default function Register() {
     setApiError("");
     try {
       await authAPI.verifyRegister(code);
+      toast.success("Cuenta verificada, ya puedes iniciar sesión");
       navigate("/login");
     } catch (err) {
-      setApiError(err.message || "Código inválido");
+      const msg = err.message || "Código inválido";
+      setApiError(msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }

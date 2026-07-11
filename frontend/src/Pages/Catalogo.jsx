@@ -1,14 +1,16 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Droplets, ShoppingCart, Search, Check, AlertCircle } from "lucide-react";
+import { ShoppingCart, Search, Check, AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
 import ProductIcon from "../components/ProductIcon";
+import PublicNav from "../components/PublicNav";
+import ProductReviews from "../components/ProductReviews";
 import { productsAPI } from "../services/api";
 import "./Home.css";
 
 const EMOJI_MAP = {
   garrafon: "🪣", garrafa: "🪣", galones: "🫙", galon: "🫙",
   bebida: "🍶", saborizada: "🍶", pack: "📦", botella: "💧",
-};
+                    };
 
 function getEmoji(product) {
   const name = (product.name + " " + (product.product_type || "")).toLowerCase();
@@ -28,6 +30,7 @@ export default function Catalogo() {
     try { return JSON.parse(sessionStorage.getItem("maq_carrito") || "[]"); } catch { return []; }
   });
   const [addedIds, setAddedIds] = useState({});
+  const [expandedId, setExpandedId] = useState(null);
 
   useEffect(() => {
     productsAPI.getAll()
@@ -60,27 +63,7 @@ export default function Catalogo() {
 
   return (
     <div className="public-page">
-      <nav className="pub-nav">
-        <div className="pub-nav-inner">
-          <div className="pub-logo">
-            <div className="pub-logo-icon"><Droplets size={20} /></div>
-            <span className="pub-logo-name">Maquilishuat</span>
-          </div>
-          <div className="pub-nav-links">
-            <Link to="/home">Inicio</Link>
-            <Link to="/catalogo">Productos</Link>
-            <Link to="/nosotros">Nosotros</Link>
-            <Link to="/contacto">Contacto</Link>
-          </div>
-          <div className="pub-nav-actions">
-            <Link to="/carrito" className="pub-cart-btn">
-              <ShoppingCart size={16} />
-              Carrito {totalCarrito > 0 && <span style={{ background: "var(--brand-500)", color: "white", borderRadius: "99px", padding: "0 6px", fontSize: 10, fontWeight: 700 }}>{totalCarrito}</span>}
-            </Link>
-            <Link to="/login" className="pub-login-btn">Ingresar</Link>
-          </div>
-        </div>
-      </nav>
+      <PublicNav cartCount={totalCarrito} />
 
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "96px 24px 64px" }}>
         <div style={{ marginBottom: 28 }}>
@@ -144,6 +127,13 @@ export default function Catalogo() {
                     {addedIds[p._id] ? <><Check size={13} /> Agregado</> : <><ShoppingCart size={13} /> Agregar</>}
                   </button>
                 </div>
+                <button
+                  onClick={() => setExpandedId(id => id === p._id ? null : p._id)}
+                  style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", fontSize: 11.5, display: "flex", alignItems: "center", gap: 4, marginTop: 8, padding: 0 }}
+                >
+                  Reseñas {expandedId === p._id ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                </button>
+                {expandedId === p._id && <ProductReviews productId={p._id} />}
               </div>
             ))}
           </div>

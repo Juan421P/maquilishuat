@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { toast } from "react-toastify";
 import { T } from "../utils/theme";
 import { authAPI } from "../services/api";
 import { useAuth } from "../context/AuthContext";
@@ -28,8 +29,9 @@ export default function RegisterPage({ onBack, onSuccess }) {
     setLoading(true);
     try {
       await authAPI.register(form.name, form.lastname, form.birthdate, form.email, form.pw);
+      toast.info("Te enviamos un código de verificación a tu correo");
       setStep(2); setErr("");
-    } catch (e) { setErr(e.message); } finally { setLoading(false); }
+    } catch (e) { setErr(e.message); toast.error(e.message || "Error al registrar"); } finally { setLoading(false); }
   };
 
   const handleVerify = async () => {
@@ -38,8 +40,9 @@ export default function RegisterPage({ onBack, onSuccess }) {
     try {
       await authAPI.verifyCode(code);
       const user = await login(form.email, form.pw);
+      toast.success("Cuenta verificada");
       onSuccess(user);
-    } catch (e) { setErr(e.message); } finally { setLoading(false); }
+    } catch (e) { setErr(e.message); toast.error(e.message || "Código inválido"); } finally { setLoading(false); }
   };
 
   return (

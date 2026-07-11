@@ -13,12 +13,12 @@ export function AuthProvider({ children }) {
   const login = useCallback(async (email, password) => {
     setLoading(true);
     try {
-      await authAPI.login(email, password);
+      const result = await authAPI.login(email, password);
       // El backend usa cookie httpOnly, guardamos solo datos básicos en memoria
-      const u = { email };
+      const u = { email, userType: result.userType };
       setUser(u);
       sessionStorage.setItem("maq_user", JSON.stringify(u));
-      return { ok: true };
+      return { ok: true, userType: result.userType };
     } catch (err) {
       return { ok: false, message: err.message };
     } finally {
@@ -33,7 +33,15 @@ export function AuthProvider({ children }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, isLoggedIn: !!user }}>
+    <AuthContext.Provider value={{
+      user,
+      loading,
+      login,
+      logout,
+      isLoggedIn: !!user,
+      isAdmin: user?.userType === "Admin",
+      isClient: user?.userType === "Client",
+    }}>
       {children}
     </AuthContext.Provider>
   );

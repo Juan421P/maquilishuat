@@ -6,7 +6,10 @@ import model from '../models/admin.js';
 import { config } from '../../config.js';
 
 const transporter = nodemailer.createTransport({
-    service: 'gmail',
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true,
+    family: 4,
     auth: {
         user: config.email.user,
         pass: config.email.password

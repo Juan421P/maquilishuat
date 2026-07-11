@@ -1,6 +1,10 @@
 import { useState, useEffect } from "react";
-import { Plus, Search, Pencil, Trash2, TrendingUp, X, AlertCircle, RefreshCw } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, AlertCircle, RefreshCw } from "lucide-react";
+import { toast } from "react-toastify";
 import ProductIcon from "../components/ProductIcon";
+import Modal from "../components/Modal";
+import ConfirmDialog from "../components/ConfirmDialog";
+import StatusBadge from "../components/StatusBadge";
 import { productsAPI } from "../services/api";
 import "./ProductsManagement.css";
 import "./OrderManagement.css";
@@ -66,25 +70,32 @@ function ProductModal({ product, onClose, onSave }) {
       }
       if (product) {
         await productsAPI.update(product._id, fd);
+        toast.success("Producto actualizado");
       } else {
         await productsAPI.create(fd);
+        toast.success("Producto creado");
       }
       onSave();
     } catch (e) {
       setErr(e.message || "Error al guardar");
+      toast.error(e.message || "Error al guardar el producto");
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-card" onClick={e => e.stopPropagation()}>
-        <div className="modal-header">
-          <h3>{product ? "Editar producto" : "Nuevo producto"}</h3>
-          <button className="modal-close" onClick={onClose}><X size={16} /></button>
-        </div>
-        {err && <div style={{ background: "#fee2e2", color: "#dc2626", padding: "8px 12px", borderRadius: 6, fontSize: 13, marginBottom: 10 }}><AlertCircle size={13} style={{ display: "inline", marginRight: 6 }} />{err}</div>}
+    <Modal
+      title={product ? "Editar producto" : "Nuevo producto"}
+      onClose={onClose}
+      footer={<>
+        <button className="btn-cancel" onClick={onClose}>Cancelar</button>
+        <button className="btn-save" onClick={handleSave} disabled={saving}>
+          {saving ? <><span className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }} /> Guardando...</> : "Guardar"}
+        </button>
+      </>}
+    >
+      {err && <div style={{ background: "#fee2e2", color: "#dc2626", padding: "8px 12px", borderRadius: 6, fontSize: 13, margin: "0 22px 10px" }}><AlertCircle size={13} style={{ display: "inline", marginRight: 6 }} />{err}</div>}
         <div className="modal-grid">
           <div className="field" style={{ gridColumn: "1/-1" }}>
             <label>Nombre del producto</label>
@@ -135,14 +146,7 @@ function ProductModal({ product, onClose, onSave }) {
             </div>
           </div>
         </div>
-        <div className="modal-actions">
-          <button className="btn-cancel" onClick={onClose}>Cancelar</button>
-          <button className="btn-save" onClick={handleSave} disabled={saving}>
-            {saving ? <><span className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }} /> Guardando...</> : "Guardar"}
-          </button>
-        </div>
-      </div>
-    </div>
+    </Modal>
   );
 }
 
@@ -185,8 +189,9 @@ export default function ProductsManagement() {
       await productsAPI.delete(id);
       setDeleteId(null);
       load();
+      toast.success("Producto eliminado");
     } catch (e) {
-      alert(e.message || "Error al eliminar");
+      toast.error(e.message || "Error al eliminar");
     } finally {
       setDeleting(false);
     }
@@ -239,9 +244,9 @@ export default function ProductsManagement() {
                 <div className="product-icon-wrap">
                   <ProductIcon emoji={getIcon(p)} size={28} color="var(--brand-600)" />
                 </div>
-                <span className={`badge ${p.stock > 0 ? "badge-green" : "badge-yellow"}`}>
+                <StatusBadge variant={p.stock > 0 ? "green" : "yellow"}>
                   {p.stock > 0 ? `Stock: ${p.stock}` : "Sin stock"}
-                </span>
+                </StatusBadge>
               </div>
               <div>
                 <p className="product-name">{p.name}</p>
@@ -266,18 +271,13 @@ export default function ProductsManagement() {
 
       {modal && <ProductModal product={modal.product} onClose={() => setModal(null)} onSave={handleSaved} />}
       {deleteId && (
-        <div className="modal-overlay" onClick={() => setDeleteId(null)}>
-          <div className="modal-card confirm" onClick={e => e.stopPropagation()}>
-            <h3>¿Eliminar producto?</h3>
-            <p>Esta acción eliminará también las imágenes del servidor y es irreversible.</p>
-            <div className="modal-actions">
-              <button className="btn-cancel" onClick={() => setDeleteId(null)}>Cancelar</button>
-              <button className="btn-danger" onClick={() => handleDelete(deleteId)} disabled={deleting}>
-                {deleting ? "Eliminando..." : "Eliminar"}
-              </button>
-            </div>
-          </div>
-        </div>
+        <ConfirmDialog
+          title="¿Eliminar producto?"
+          message="Esta acción eliminará también las imágenes del servidor y es irreversible."
+          onCancel={() => setDeleteId(null)}
+          onConfirm={() => handleDelete(deleteId)}
+          confirming={deleting}
+        />
       )}
     </div>
   );

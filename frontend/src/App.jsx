@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import DashboardLayout from "./Layout/DashboardLayout";
+import ProtectedRoute from "./components/ProtectedRoute";
 import Login from "./Pages/Login";
 import Register from "./Pages/Register";
 import ForgotPassword from "./Pages/ForgotPassword";
@@ -18,6 +19,7 @@ import Contacto from "./Pages/Contacto";
 import Terminos from "./Pages/Terminos";
 import Catalogo from "./Pages/Catalogo";
 import Carrito from "./Pages/Carrito";
+import MisPedidos from "./Pages/MisPedidos";
 
 export default function App() {
   return (
@@ -37,8 +39,15 @@ export default function App() {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password"  element={<ResetPassword />} />
 
+        {/* Cliente autenticado */}
+        <Route path="/mis-pedidos" element={
+          <ProtectedRoute role="Client"><MisPedidos /></ProtectedRoute>
+        } />
+
         {/* Panel admin */}
-        <Route path="/" element={<DashboardLayout />}>
+        <Route path="/" element={
+          <ProtectedRoute role="Admin"><DashboardLayout /></ProtectedRoute>
+        }>
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard"    element={<Dashboard />} />
           <Route path="pedidos"      element={<Pedidos />} />

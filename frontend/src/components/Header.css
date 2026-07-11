@@ -43,6 +43,12 @@
 .icon-btn.active { background: var(--brand-50); color: var(--brand-600); }
 [data-theme="dark"] .icon-btn:hover { background: rgba(255,255,255,0.07); }
 
+.menu-btn { display: none; flex-shrink: 0; }
+@media (max-width: 768px) {
+  .menu-btn { display: flex; }
+  .search-panel, .notif-panel { right: 12px; width: calc(100vw - 24px); max-width: 340px; }
+}
+
 /* ─── NOTIF BADGE ────────────────────────────────────────────────────── */
 .notif-badge {
   position: absolute; top: 4px; right: 4px;

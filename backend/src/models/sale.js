@@ -6,8 +6,7 @@ const saleSchema = new Schema({
     payment_method: {type: String},
     payment_status: {type: String}
 },{
-    timestamps: true,
-    strict: false
+    timestamps: true
 })
 
 export default model("sales", saleSchema)
