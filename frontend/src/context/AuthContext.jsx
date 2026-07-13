@@ -1,5 +1,5 @@
-import { createContext, useContext, useState, useCallback } from "react";
-import { authAPI } from "../services/api";
+import { createContext, useContext, useState, useCallback, useEffect } from "react";
+import { authAPI, setAuthInvalidHandler } from "../services/api";
 
 const AuthContext = createContext(null);
 
@@ -9,6 +9,34 @@ export function AuthProvider({ children }) {
     try { return JSON.parse(sessionStorage.getItem("maq_user")); } catch { return null; }
   });
   const [loading, setLoading] = useState(false);
+
+  const clearSession = useCallback(() => {
+    setUser(null);
+    sessionStorage.removeItem("maq_user");
+  }, []);
+
+  // El authCookie (compartido por el navegador entre tabs) es la fuente de verdad,
+  // no el sessionStorage de esta tab. Si el backend rechaza la sesión (401/403 en
+  // un endpoint protegido) limpiamos el estado local para que ProtectedRoute reaccione.
+  useEffect(() => {
+    setAuthInvalidHandler(clearSession);
+    return () => setAuthInvalidHandler(null);
+  }, [clearSession]);
+
+  // Al montar, se confirma contra el backend que el authCookie sigue correspondiendo
+  // al usuario cacheado (puede haber cambiado en otra tab, o haber expirado).
+  useEffect(() => {
+    authAPI.me()
+      .then((result) => {
+        setUser((prev) => {
+          if (prev && prev.userType === result.userType) return prev;
+          const u = { userType: result.userType };
+          sessionStorage.setItem("maq_user", JSON.stringify(u));
+          return u;
+        });
+      })
+      .catch(() => clearSession());
+  }, [clearSession]);
 
   const login = useCallback(async (email, password) => {
     setLoading(true);
@@ -28,9 +56,8 @@ export function AuthProvider({ children }) {
 
   const logout = useCallback(async () => {
     try { await authAPI.logout(); } catch {}
-    setUser(null);
-    sessionStorage.removeItem("maq_user");
-  }, []);
+    clearSession();
+  }, [clearSession]);
 
   return (
     <AuthContext.Provider value={{

@@ -15,7 +15,7 @@ app.use(cors({
 }));
 app.use('/api', rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 100,
+    max: 500,
     message: { error: 'too many requests, please try again later' }
 }));
 app.use('/api', router);

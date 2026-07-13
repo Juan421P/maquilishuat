@@ -3,15 +3,28 @@
 // En producción cambia esto al dominio real del backend
 const BASE = "/api";
 
+// Se registra desde AuthContext para poder limpiar la sesión en cache
+// cuando el backend rechaza el authCookie (sesión desincronizada entre tabs).
+let onAuthInvalid = null;
+export function setAuthInvalidHandler(fn) {
+  onAuthInvalid = fn;
+}
+
 // Helper genérico con manejo de errores
 async function request(path, options = {}) {
+  const { skipAuthHandler, ...fetchOptions } = options;
   const res = await fetch(`${BASE}${path}`, {
     credentials: "include",
-    headers: { "Content-Type": "application/json", ...options.headers },
-    ...options,
+    headers: { "Content-Type": "application/json", ...fetchOptions.headers },
+    ...fetchOptions,
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.message || `Error ${res.status}`);
+  if (!res.ok) {
+    if ((res.status === 401 || res.status === 403) && !skipAuthHandler) {
+      onAuthInvalid?.();
+    }
+    throw new Error(data.message || `Error ${res.status}`);
+  }
   return data;
 }
 
@@ -20,10 +33,17 @@ async function request(path, options = {}) {
 export const authAPI = {
   // Login de cliente
   login: (email, password) =>
-    request("/login", { method: "POST", body: JSON.stringify({ email, password }) }),
+    request("/login", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+      skipAuthHandler: true,
+    }),
+
+  // Sesión actual según el authCookie (fuente de verdad del backend)
+  me: () => request("/me", { skipAuthHandler: true }),
 
   // Logout
-  logout: () => request("/logout", { method: "POST" }),
+  logout: () => request("/logout", { method: "POST", skipAuthHandler: true }),
 
   // Registro de cliente: paso 1 - envía datos y recibe cookie + email de verificación
   register: (name, lastname, birthdate, email, password) =>
