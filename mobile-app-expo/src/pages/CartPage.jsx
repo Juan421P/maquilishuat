@@ -4,6 +4,7 @@ import { useToast } from "../components/Toast";
 import { T } from "../utils/theme";
 import { cartAPI, salesAPI } from "../services/api";
 import { formatPrice, cartTotal } from "../utils/format";
+import { validateAddress } from "../utils/validators";
 import AppBar from "../layout/AppBar";
 import Field from "../components/Field";
 import Alert from "../components/Alert";
@@ -16,6 +17,7 @@ const METODOS = ["Efectivo", "Transferencia", "Tarjeta"];
 export default function CartPage({ cart, changeQty, removeItem, clearCart, onOrderSuccess }) {
   const toast = useToast();
   const [addr, setAddr] = useState("");
+  const [addrError, setAddrError] = useState("");
   const [metodo, setMetodo] = useState("Efectivo");
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
@@ -24,12 +26,14 @@ export default function CartPage({ cart, changeQty, removeItem, clearCart, onOrd
   const total = subtotal + (subtotal > 0 ? SHIPPING : 0);
 
   const handleOrder = async () => {
-    if (!addr.trim()) { setErr("Ingresa la dirección de entrega"); return; }
+    const addrErr = validateAddress(addr);
+    setAddrError(addrErr);
+    if (addrErr) return;
     setLoading(true); setErr("");
     try {
       const products = cart.map((x) => ({ product_id: x.id, amount: x.qty }));
       const cartRes = await cartAPI.create(products);
-      await salesAPI.create(cartRes.cart._id, addr, metodo);
+      await salesAPI.create(cartRes.cart._id, addr.trim(), metodo);
       clearCart();
       toast?.success("¡Pedido registrado con éxito!");
       onOrderSuccess();
@@ -89,7 +93,7 @@ export default function CartPage({ cart, changeQty, removeItem, clearCart, onOrd
 
         <View style={{ backgroundColor: T.surface, borderRadius: 12, borderWidth: 1, borderColor: T.border, padding: 14, marginBottom: 12 }}>
           <Text style={{ fontSize: 13, fontWeight: "800", color: T.text1, marginBottom: 12 }}>Datos de entrega</Text>
-          <Field label="Dirección" value={addr} onChangeText={(v) => { setAddr(v); setErr(""); }} placeholder="Col. San Benito, Av. La Revolución #25" iconName="map" />
+          <Field label="Dirección" value={addr} onChangeText={(v) => { setAddr(v); setAddrError(""); setErr(""); }} placeholder="Col. San Benito, Av. La Revolución #25" iconName="map" error={addrError} />
           <View>
             <Text style={{ fontSize: 11, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.6, color: T.text3, marginBottom: 7 }}>
               Método de pago

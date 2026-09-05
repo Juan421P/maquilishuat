@@ -2,6 +2,13 @@ import { useState } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from "react-native";
 import { T } from "../utils/theme";
 import { authAPI } from "../services/api";
+import {
+  validateEmail,
+  validateCode,
+  validatePassword,
+  validateConfirmPassword,
+  runValidators,
+} from "../utils/validators";
 import AuthHeader from "../layout/AuthHeader";
 import Field from "../components/Field";
 import Alert from "../components/Alert";
@@ -14,28 +21,61 @@ export default function ForgotPage({ onBack }) {
   const [code, setCode] = useState("");
   const [pw, setPw] = useState("");
   const [pw2, setPw2] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
   const [done, setDone] = useState(false);
 
+  const clearFieldError = (key) => setFieldErrors((e) => ({ ...e, [key]: "" }));
+
   const s1 = async () => {
-    if (!email) { setErr("Ingresa tu correo"); return; }
+    const emailErr = validateEmail(email);
+    setFieldErrors({ email: emailErr });
+    if (emailErr) return;
     setLoading(true);
-    try { await authAPI.requestRecovery(email); setStep(2); setErr(""); }
-    catch (e) { setErr(e.message); } finally { setLoading(false); }
+    try {
+      await authAPI.requestRecovery(email.trim());
+      setStep(2);
+      setErr("");
+    } catch (e) {
+      setErr(e.message);
+    } finally {
+      setLoading(false);
+    }
   };
+
   const s2 = async () => {
-    if (!code) { setErr("Ingresa el código"); return; }
+    const codeErr = validateCode(code);
+    setFieldErrors({ code: codeErr });
+    if (codeErr) return;
     setLoading(true);
-    try { await authAPI.verifyRecovery(code); setStep(3); setErr(""); }
-    catch (e) { setErr(e.message); } finally { setLoading(false); }
+    try {
+      await authAPI.verifyRecovery(code.trim());
+      setStep(3);
+      setErr("");
+    } catch (e) {
+      setErr(e.message);
+    } finally {
+      setLoading(false);
+    }
   };
+
   const s3 = async () => {
-    if (!pw || !pw2) { setErr("Completa los campos"); return; }
-    if (pw !== pw2) { setErr("Las contraseñas no coinciden"); return; }
+    const { valid, errors } = runValidators({
+      pw: validatePassword(pw),
+      pw2: validateConfirmPassword(pw, pw2),
+    });
+    setFieldErrors(errors);
+    if (!valid) return;
     setLoading(true);
-    try { await authAPI.newPassword(pw, pw2); setDone(true); }
-    catch (e) { setErr(e.message); } finally { setLoading(false); }
+    try {
+      await authAPI.newPassword(pw, pw2);
+      setDone(true);
+    } catch (e) {
+      setErr(e.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -64,28 +104,50 @@ export default function ForgotPage({ onBack }) {
             <Alert msg={err} />
             {step === 1 && (
               <>
-                <Field label="Correo electrónico" type="email" value={email}
-                  onChangeText={(v) => { setEmail(v); setErr(""); }}
-                  placeholder="correo@ejemplo.com" iconName="mail" />
+                <Field
+                  label="Correo electrónico"
+                  type="email"
+                  value={email}
+                  onChangeText={(v) => { setEmail(v); clearFieldError("email"); setErr(""); }}
+                  placeholder="correo@ejemplo.com"
+                  iconName="mail"
+                  error={fieldErrors.email}
+                />
                 <Btn onPress={s1} disabled={loading}>{loading ? "Enviando..." : "Enviar código"}</Btn>
               </>
             )}
             {step === 2 && (
               <>
-                <Field label="Código recibido" value={code}
-                  onChangeText={(v) => { setCode(v); setErr(""); }}
-                  placeholder="Ingresa el código" />
+                <Field
+                  label="Código recibido"
+                  value={code}
+                  onChangeText={(v) => { setCode(v); clearFieldError("code"); setErr(""); }}
+                  placeholder="Ingresa el código"
+                  error={fieldErrors.code}
+                />
                 <Btn onPress={s2} disabled={loading}>{loading ? "Verificando..." : "Verificar código"}</Btn>
               </>
             )}
             {step === 3 && (
               <>
-                <Field label="Nueva contraseña" type="password" value={pw}
-                  onChangeText={(v) => { setPw(v); setErr(""); }}
-                  placeholder="Mínimo 6 caracteres" iconName="lock" />
-                <Field label="Confirmar contraseña" type="password" value={pw2}
-                  onChangeText={(v) => { setPw2(v); setErr(""); }}
-                  placeholder="Repite la contraseña" iconName="lock" />
+                <Field
+                  label="Nueva contraseña"
+                  type="password"
+                  value={pw}
+                  onChangeText={(v) => { setPw(v); clearFieldError("pw"); setErr(""); }}
+                  placeholder="Mínimo 8 caracteres, 1 letra y 1 número"
+                  iconName="lock"
+                  error={fieldErrors.pw}
+                />
+                <Field
+                  label="Confirmar contraseña"
+                  type="password"
+                  value={pw2}
+                  onChangeText={(v) => { setPw2(v); clearFieldError("pw2"); setErr(""); }}
+                  placeholder="Repite la contraseña"
+                  iconName="lock"
+                  error={fieldErrors.pw2}
+                />
                 <Btn onPress={s3} disabled={loading}>{loading ? "Guardando..." : "Guardar contraseña"}</Btn>
               </>
             )}

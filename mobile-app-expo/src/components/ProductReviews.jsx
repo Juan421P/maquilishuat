@@ -3,6 +3,7 @@ import { ScrollView, Text, TextInput, TouchableOpacity, View } from "react-nativ
 import { T } from "../utils/theme";
 import { reviewsAPI } from "../services/api";
 import { useAuth } from "../context/AuthContext";
+import { validateRating, validateComment, runValidators } from "../utils/validators";
 import Ic from "./Ic";
 
 export default function ProductReviews({ productId }) {
@@ -11,8 +12,8 @@ export default function ProductReviews({ productId }) {
   const [loading, setLoading] = useState(true);
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
-  const [err, setErr] = useState("");
   const [ok, setOk] = useState(false);
 
   const load = useCallback(() => {
@@ -29,20 +30,23 @@ export default function ProductReviews({ productId }) {
   }, [load]);
 
   const handleSubmit = async () => {
-    if (rating === 0) {
-      setErr("Selecciona una calificación");
-      return;
-    }
+    const { valid, errors } = runValidators({
+      rating: validateRating(rating),
+      comment: validateComment(comment),
+    });
+    setFieldErrors(errors);
+    if (!valid) return;
+
     setSubmitting(true);
-    setErr("");
     try {
-      await reviewsAPI.create(productId, rating, comment);
+      await reviewsAPI.create(productId, rating, comment.trim());
       setRating(0);
       setComment("");
+      setFieldErrors({});
       setOk(true);
       load();
     } catch (e) {
-      setErr(e.message || "No se pudo enviar la reseña");
+      setFieldErrors({ submit: e.message || "No se pudo enviar la reseña" });
     } finally {
       setSubmitting(false);
     }
@@ -74,29 +78,32 @@ export default function ProductReviews({ productId }) {
       {isLoggedIn && (
         <View style={{ gap: 6 }}>
           {ok && <Text style={{ fontSize: 11, color: T.green }}>¡Gracias por tu reseña!</Text>}
-          {err ? <Text style={{ fontSize: 11, color: T.red }}>{err}</Text> : null}
+          {fieldErrors.submit ? <Text style={{ fontSize: 11, color: T.red }}>{fieldErrors.submit}</Text> : null}
           <View style={{ flexDirection: "row", gap: 3 }}>
             {[1, 2, 3, 4, 5].map((n) => (
-              <TouchableOpacity key={n} onPress={() => setRating(n)}>
+              <TouchableOpacity key={n} onPress={() => { setRating(n); setFieldErrors((e) => ({ ...e, rating: "" })); }}>
                 <Ic n="star" size={16} color={n <= rating ? T.purple : T.border} />
               </TouchableOpacity>
             ))}
           </View>
+          {fieldErrors.rating ? <Text style={{ fontSize: 11, color: T.red }}>{fieldErrors.rating}</Text> : null}
           <TextInput
             value={comment}
-            onChangeText={setComment}
-            placeholder="Comentario (opcional)"
+            onChangeText={(v) => { setComment(v); setFieldErrors((e) => ({ ...e, comment: "" })); }}
+            placeholder="Comentario (opcional, máx. 500 caracteres)"
             placeholderTextColor={T.textMut}
+            maxLength={500}
             style={{
               paddingVertical: 6,
               paddingHorizontal: 8,
               borderWidth: 1.5,
-              borderColor: T.border,
+              borderColor: fieldErrors.comment ? T.red : T.border,
               borderRadius: 6,
               fontSize: 12,
               color: T.text1,
             }}
           />
+          {fieldErrors.comment ? <Text style={{ fontSize: 11, color: T.red }}>{fieldErrors.comment}</Text> : null}
           <TouchableOpacity
             onPress={handleSubmit}
             disabled={submitting}

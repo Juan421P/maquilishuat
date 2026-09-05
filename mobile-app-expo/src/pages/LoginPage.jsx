@@ -3,6 +3,7 @@ import { KeyboardAvoidingView, Platform, ScrollView, Text, TouchableOpacity, Vie
 import { T } from "../utils/theme";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../components/Toast";
+import { validateEmail, validateRequired, runValidators } from "../utils/validators";
 import AuthHeader from "../layout/AuthHeader";
 import Field from "../components/Field";
 import Alert from "../components/Alert";
@@ -13,22 +14,31 @@ export default function LoginPage({ onSuccess, onRegister, onForgot, onBack }) {
   const { login } = useAuth();
   const toast = useToast();
   const [form, setForm] = useState({ email: "", pw: "" });
+  const [fieldErrors, setFieldErrors] = useState({});
   const [show, setShow] = useState(false);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
+
   const set = (k) => (v) => {
     setForm((f) => ({ ...f, [k]: v }));
+    setFieldErrors((e) => ({ ...e, [k]: "" }));
     setErr("");
   };
 
+  const validate = () =>
+    runValidators({
+      email: validateEmail(form.email),
+      pw: validateRequired(form.pw, "La contraseña"),
+    });
+
   const handle = async () => {
-    if (!form.email || !form.pw) {
-      setErr("Completa todos los campos");
-      return;
-    }
+    const { valid, errors } = validate();
+    setFieldErrors(errors);
+    if (!valid) return;
+
     setLoading(true);
     try {
-      await login(form.email, form.pw);
+      await login(form.email.trim(), form.pw);
       toast?.success("Sesión iniciada");
       onSuccess();
     } catch (e) {
@@ -45,7 +55,16 @@ export default function LoginPage({ onSuccess, onRegister, onForgot, onBack }) {
       <AuthHeader title="Bienvenido" sub="Accede a tu cuenta de cliente" onBack={onBack} />
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 24, paddingTop: 28 }}>
         <Alert msg={err} />
-        <Field label="Correo" type="email" value={form.email} onChangeText={set("email")} placeholder="correo@ejemplo.com" iconName="mail" autoComplete="email" />
+        <Field
+          label="Correo"
+          type="email"
+          value={form.email}
+          onChangeText={set("email")}
+          placeholder="correo@ejemplo.com"
+          iconName="mail"
+          autoComplete="email"
+          error={fieldErrors.email}
+        />
         <Field
           label="Contraseña"
           type={show ? "text" : "password"}
@@ -53,6 +72,7 @@ export default function LoginPage({ onSuccess, onRegister, onForgot, onBack }) {
           onChangeText={set("pw")}
           placeholder="••••••••"
           iconName="lock"
+          error={fieldErrors.pw}
           right={
             <TouchableOpacity onPress={() => setShow((s) => !s)}>
               <Ic n={show ? "eyeOff" : "eye"} size={18} color={T.textMut} />

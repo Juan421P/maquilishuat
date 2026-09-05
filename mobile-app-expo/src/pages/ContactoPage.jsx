@@ -3,6 +3,7 @@ import { KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, TouchableO
 import { T } from "../utils/theme";
 import Ic from "../components/Ic";
 import Btn from "../components/Btn";
+import { validateName, validateEmail, validateRequired, validateMessage, runValidators } from "../utils/validators";
 
 const INFO = [
   { icon: "phone", label: "Teléfono", lines: ["2222-0000", "WhatsApp disponible"] },
@@ -20,11 +21,25 @@ const ASUNTOS = [
 
 export default function ContactoPage() {
   const [form, setForm] = useState({ nombre: "", email: "", asunto: "", mensaje: "" });
+  const [fieldErrors, setFieldErrors] = useState({});
   const [enviado, setEnviado] = useState(false);
-  const set = (k) => (v) => setForm((f) => ({ ...f, [k]: v }));
+  const set = (k) => (v) => {
+    setForm((f) => ({ ...f, [k]: v }));
+    setFieldErrors((e) => ({ ...e, [k]: "" }));
+  };
+
+  const validate = () =>
+    runValidators({
+      nombre: validateName(form.nombre, "El nombre"),
+      email: validateEmail(form.email),
+      asunto: validateRequired(form.asunto, "El asunto"),
+      mensaje: validateMessage(form.mensaje),
+    });
 
   const handleSubmit = () => {
-    if (!form.nombre || !form.email || !form.asunto || !form.mensaje) return;
+    const { valid, errors } = validate();
+    setFieldErrors(errors);
+    if (!valid) return;
     setEnviado(true);
   };
 
@@ -39,7 +54,7 @@ export default function ContactoPage() {
           Gracias por escribirnos, {form.nombre || "visitante"}. Te contactaremos a la brevedad posible.
         </Text>
         <TouchableOpacity
-          onPress={() => { setEnviado(false); setForm({ nombre: "", email: "", asunto: "", mensaje: "" }); }}
+          onPress={() => { setEnviado(false); setForm({ nombre: "", email: "", asunto: "", mensaje: "" }); setFieldErrors({}); }}
           style={{ marginTop: 6 }}
         >
           <Text style={{ color: T.purple, fontWeight: "700", fontSize: 14 }}>Enviar otro mensaje</Text>
@@ -60,16 +75,18 @@ export default function ContactoPage() {
           <Text style={{ fontSize: 11, fontWeight: "700", textTransform: "uppercase", color: T.text3, marginBottom: 5 }}>Tu nombre</Text>
           <TextInput
             value={form.nombre} onChangeText={set("nombre")} placeholder="Juan Pérez" placeholderTextColor={T.textMut}
-            style={{ borderWidth: 1.5, borderColor: T.border, borderRadius: 10, padding: 11, fontSize: 14, color: T.text1 }}
+            style={{ borderWidth: 1.5, borderColor: fieldErrors.nombre ? T.red : T.border, borderRadius: 10, padding: 11, fontSize: 14, color: T.text1 }}
           />
+          {fieldErrors.nombre ? <Text style={{ fontSize: 12, color: T.red, marginTop: 3 }}>{fieldErrors.nombre}</Text> : null}
         </View>
         <View style={{ marginBottom: 12 }}>
           <Text style={{ fontSize: 11, fontWeight: "700", textTransform: "uppercase", color: T.text3, marginBottom: 5 }}>Correo electrónico</Text>
           <TextInput
             value={form.email} onChangeText={set("email")} placeholder="correo@ejemplo.com" placeholderTextColor={T.textMut}
             keyboardType="email-address" autoCapitalize="none"
-            style={{ borderWidth: 1.5, borderColor: T.border, borderRadius: 10, padding: 11, fontSize: 14, color: T.text1 }}
+            style={{ borderWidth: 1.5, borderColor: fieldErrors.email ? T.red : T.border, borderRadius: 10, padding: 11, fontSize: 14, color: T.text1 }}
           />
+          {fieldErrors.email ? <Text style={{ fontSize: 12, color: T.red, marginTop: 3 }}>{fieldErrors.email}</Text> : null}
         </View>
         <View style={{ marginBottom: 12 }}>
           <Text style={{ fontSize: 11, fontWeight: "700", textTransform: "uppercase", color: T.text3, marginBottom: 5 }}>Asunto</Text>
@@ -84,14 +101,16 @@ export default function ContactoPage() {
               </TouchableOpacity>
             ))}
           </View>
+          {fieldErrors.asunto ? <Text style={{ fontSize: 12, color: T.red, marginTop: 5 }}>{fieldErrors.asunto}</Text> : null}
         </View>
         <View style={{ marginBottom: 18 }}>
           <Text style={{ fontSize: 11, fontWeight: "700", textTransform: "uppercase", color: T.text3, marginBottom: 5 }}>Mensaje</Text>
           <TextInput
-            value={form.mensaje} onChangeText={set("mensaje")} placeholder="Cuéntanos en qué te podemos ayudar..." placeholderTextColor={T.textMut}
+            value={form.mensaje} onChangeText={set("mensaje")} placeholder="Cuéntanos en qué te podemos ayudar (mín. 10 caracteres)..." placeholderTextColor={T.textMut}
             multiline numberOfLines={4}
-            style={{ borderWidth: 1.5, borderColor: T.border, borderRadius: 10, padding: 11, fontSize: 14, color: T.text1, minHeight: 90, textAlignVertical: "top" }}
+            style={{ borderWidth: 1.5, borderColor: fieldErrors.mensaje ? T.red : T.border, borderRadius: 10, padding: 11, fontSize: 14, color: T.text1, minHeight: 90, textAlignVertical: "top" }}
           />
+          {fieldErrors.mensaje ? <Text style={{ fontSize: 12, color: T.red, marginTop: 3 }}>{fieldErrors.mensaje}</Text> : null}
         </View>
         <Btn onPress={handleSubmit}>Enviar mensaje</Btn>
 

@@ -4,6 +4,15 @@ import { T } from "../utils/theme";
 import { authAPI } from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../components/Toast";
+import {
+  validateName,
+  validateBirthdate,
+  validateEmail,
+  validatePassword,
+  validateConfirmPassword,
+  validateCode,
+  runValidators,
+} from "../utils/validators";
 import AuthHeader from "../layout/AuthHeader";
 import Field from "../components/Field";
 import Alert from "../components/Alert";
@@ -15,32 +24,37 @@ export default function RegisterPage({ onBack, onSuccess }) {
   const toast = useToast();
   const [step, setStep] = useState(1);
   const [form, setForm] = useState({ name: "", lastname: "", birthdate: "", email: "", pw: "", pw2: "" });
+  const [fieldErrors, setFieldErrors] = useState({});
   const [code, setCode] = useState("");
+  const [codeError, setCodeError] = useState("");
   const [show, setShow] = useState(false);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
 
   const set = (key) => (v) => {
     setForm((f) => ({ ...f, [key]: v }));
+    setFieldErrors((e) => ({ ...e, [key]: "" }));
     setErr("");
   };
 
+  const validateStep1 = () =>
+    runValidators({
+      name: validateName(form.name, "El nombre"),
+      lastname: validateName(form.lastname, "El apellido"),
+      birthdate: validateBirthdate(form.birthdate),
+      email: validateEmail(form.email),
+      pw: validatePassword(form.pw),
+      pw2: validateConfirmPassword(form.pw, form.pw2),
+    });
+
   const handleRegister = async () => {
-    if (!form.name || !form.lastname || !form.birthdate || !form.email || !form.pw) {
-      setErr("Completa todos los campos");
-      return;
-    }
-    if (form.pw !== form.pw2) {
-      setErr("Las contraseñas no coinciden");
-      return;
-    }
-    if (form.pw.length < 6) {
-      setErr("Mínimo 6 caracteres");
-      return;
-    }
+    const { valid, errors } = validateStep1();
+    setFieldErrors(errors);
+    if (!valid) return;
+
     setLoading(true);
     try {
-      await authAPI.register(form.name, form.lastname, form.birthdate, form.email, form.pw);
+      await authAPI.register(form.name.trim(), form.lastname.trim(), form.birthdate.trim(), form.email.trim(), form.pw);
       toast?.info("Te enviamos un código de verificación a tu correo");
       setStep(2);
       setErr("");
@@ -53,14 +67,14 @@ export default function RegisterPage({ onBack, onSuccess }) {
   };
 
   const handleVerify = async () => {
-    if (!code.trim()) {
-      setErr("Ingresa el código");
-      return;
-    }
+    const codeErr = validateCode(code);
+    setCodeError(codeErr);
+    if (codeErr) return;
+
     setLoading(true);
     try {
-      await authAPI.verifyCode(code);
-      const user = await login(form.email, form.pw);
+      await authAPI.verifyCode(code.trim());
+      const user = await login(form.email.trim(), form.pw);
       toast?.success("Cuenta verificada");
       onSuccess(user);
     } catch (e) {
@@ -119,28 +133,52 @@ export default function RegisterPage({ onBack, onSuccess }) {
           <>
             <View style={{ flexDirection: "row", gap: 10 }}>
               <View style={{ flex: 1 }}>
-                <Field label="Nombre" value={form.name} onChangeText={set("name")} placeholder="Juan" />
+                <Field label="Nombre" value={form.name} onChangeText={set("name")} placeholder="Juan" error={fieldErrors.name} />
               </View>
               <View style={{ flex: 1 }}>
-                <Field label="Apellido" value={form.lastname} onChangeText={set("lastname")} placeholder="Pérez" />
+                <Field label="Apellido" value={form.lastname} onChangeText={set("lastname")} placeholder="Pérez" error={fieldErrors.lastname} />
               </View>
             </View>
-            <Field label="Fecha de nacimiento (AAAA-MM-DD)" value={form.birthdate} onChangeText={set("birthdate")} placeholder="1995-04-20" />
-            <Field label="Correo" type="email" value={form.email} onChangeText={set("email")} placeholder="correo@ejemplo.com" iconName="mail" autoComplete="email" />
+            <Field
+              label="Fecha de nacimiento (AAAA-MM-DD)"
+              value={form.birthdate}
+              onChangeText={set("birthdate")}
+              placeholder="1995-04-20"
+              error={fieldErrors.birthdate}
+            />
+            <Field
+              label="Correo"
+              type="email"
+              value={form.email}
+              onChangeText={set("email")}
+              placeholder="correo@ejemplo.com"
+              iconName="mail"
+              autoComplete="email"
+              error={fieldErrors.email}
+            />
             <Field
               label="Contraseña"
               type={show ? "text" : "password"}
               value={form.pw}
               onChangeText={set("pw")}
-              placeholder="Mínimo 6 caracteres"
+              placeholder="Mínimo 8 caracteres, 1 letra y 1 número"
               iconName="lock"
+              error={fieldErrors.pw}
               right={
                 <TouchableOpacity onPress={() => setShow((s) => !s)}>
                   <Ic n={show ? "eyeOff" : "eye"} size={17} color={T.textMut} />
                 </TouchableOpacity>
               }
             />
-            <Field label="Confirmar contraseña" type="password" value={form.pw2} onChangeText={set("pw2")} placeholder="Repite tu contraseña" iconName="lock" />
+            <Field
+              label="Confirmar contraseña"
+              type="password"
+              value={form.pw2}
+              onChangeText={set("pw2")}
+              placeholder="Repite tu contraseña"
+              iconName="lock"
+              error={fieldErrors.pw2}
+            />
             <Btn onPress={handleRegister} disabled={loading}>
               {loading ? "Registrando..." : "Continuar"}
             </Btn>
@@ -167,7 +205,13 @@ export default function RegisterPage({ onBack, onSuccess }) {
                 Revisa tu bandeja y copia el código de verificación.
               </Text>
             </View>
-            <Field label="Código de verificación" value={code} onChangeText={setCode} placeholder="Ingresa el código" />
+            <Field
+              label="Código de verificación"
+              value={code}
+              onChangeText={(v) => { setCode(v); setCodeError(""); setErr(""); }}
+              placeholder="Ingresa el código"
+              error={codeError}
+            />
             <Btn onPress={handleVerify} disabled={loading}>
               {loading ? "Verificando..." : "Activar cuenta"}
             </Btn>

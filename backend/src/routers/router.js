@@ -9,7 +9,6 @@ import product from './product.js';
 import sale from './sale.js';
 import shoppingCart from './shopping_cart.js';
 import review from './review.js';
-import me from './me.js';
 
 const router = Router();
 
@@ -23,6 +22,5 @@ router.use('/login', loginClient);
 router.use('/registerClient', registerClient);
 router.use('/recoveryClient', recoveryClient);
 router.use('/logout', logout);
-router.use('/me', me);
 
 export default router;

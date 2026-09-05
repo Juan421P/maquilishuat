@@ -12,4 +12,4 @@
 //
 // Podés ver tu IP local con `ipconfig` (Windows) o `ifconfig`/`ip a` (Mac/Linux).
 // ─────────────────────────────────────────────────────────────────────────
-export const API_URL = "http://192.168.0.19/api";
+export const API_URL = "http://192.168.1.15:4000/api";

@@ -68,7 +68,7 @@ loginClientController.login = async (req, res) => {
 
         res.cookie("authCookie", token);
 
-        return res.status(200).json({ message: "Login exitoso", userType });
+        return res.status(200).json({ message: "Login exitoso", userType, token });
     } catch (error) {
         console.log("error" + error);
         return res.status(500).json({ message: "Internal server error" });

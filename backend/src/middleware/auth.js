@@ -2,7 +2,10 @@ import jsonwebtoken from 'jsonwebtoken';
 import { config } from '../../config.js';
 
 export const verifyToken = (req, res, next) => {
-    const token = req.cookies.authCookie;
+    const bearer = req.headers.authorization?.startsWith('Bearer ')
+        ? req.headers.authorization.slice(7)
+        : null;
+    const token = req.cookies.authCookie || bearer;
 
     if (!token) {
         return res.status(401).json({ message: 'authentication required' });
