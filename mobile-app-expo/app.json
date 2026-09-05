@@ -1,0 +1,24 @@
+{
+  "expo": {
+    "name": "Maquilishuat",
+    "slug": "maquilishuat-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "backgroundColor": "#4a0d5c",
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.maquilishuat.mobile"
+    },
+    "android": {
+      "package": "com.maquilishuat.mobile",
+      "adaptiveIcon": {
+        "backgroundColor": "#4a0d5c"
+      }
+    },
+    "web": {
+      "bundler": "metro"
+    }
+  }
+}
