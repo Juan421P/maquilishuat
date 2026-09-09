@@ -1,21 +1,13 @@
-import { useState } from "react";
 import { ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { T } from "../utils/theme";
+import { useCatalogFilters } from "../hooks/useCatalogFilters";
 import AppBar from "../layout/AppBar";
 import ProductCard from "../components/ProductCard";
 import Ic from "../components/Ic";
 
 export default function CatalogPage({ products, cart, onAdd, onGoCart }) {
-  const [query, setQuery] = useState("");
-  const [cat, setCat] = useState("Todas");
+  const { query, setQuery, category, setCategory, categories, filtered } = useCatalogFilters(products);
   const cartCount = cart.reduce((a, x) => a + x.qty, 0);
-
-  const categories = ["Todas", ...new Set(products.map((p) => p.product_type).filter(Boolean))];
-  const filtered = products.filter((p) => {
-    const matchCat = cat === "Todas" || p.product_type === cat;
-    const matchQ = (p.name || "").toLowerCase().includes(query.toLowerCase());
-    return matchCat && matchQ;
-  });
 
   return (
     <View style={{ flex: 1 }}>
@@ -47,15 +39,15 @@ export default function CatalogPage({ products, cart, onAdd, onGoCart }) {
           {categories.map((c) => (
             <TouchableOpacity
               key={c}
-              onPress={() => setCat(c)}
+              onPress={() => setCategory(c)}
               style={{
                 paddingVertical: 4,
                 paddingHorizontal: 13,
                 borderRadius: 99,
-                backgroundColor: cat === c ? T.purple : "#f3e8ff",
+                backgroundColor: category === c ? T.purple : "#f3e8ff",
               }}
             >
-              <Text style={{ fontSize: 12, fontWeight: "700", color: cat === c ? "#fff" : T.purple }}>{c}</Text>
+              <Text style={{ fontSize: 12, fontWeight: "700", color: category === c ? "#fff" : T.purple }}>{c}</Text>
             </TouchableOpacity>
           ))}
         </ScrollView>

@@ -1,17 +1,18 @@
-import { useState, useEffect } from "react";
+import { useCallback, useEffect } from "react";
+import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { View, ActivityIndicator } from "react-native";
+import { View } from "react-native";
 
 import { AuthProvider, useAuth } from "./src/context/AuthContext";
 import { ToastProvider } from "./src/components/Toast";
 import { useCart } from "./src/hooks/useCart";
-import { productsAPI } from "./src/services/api";
+import { useProducts } from "./src/hooks/useProducts";
+import { useAppNavigation } from "./src/hooks/useAppNavigation";
 import { T } from "./src/utils/theme";
 
 import BottomNav from "./src/layout/BottomNav";
 
-import SplashPage from "./src/pages/SplashPage";
 import LoginPage from "./src/pages/LoginPage";
 import RegisterPage from "./src/pages/RegisterPage";
 import ForgotPage from "./src/pages/ForgotPage";
@@ -21,65 +22,89 @@ import CartPage from "./src/pages/CartPage";
 import ProfilePage from "./src/pages/ProfilePage";
 import OrderSuccessPage from "./src/pages/OrderSuccessPage";
 import InfoHubPage from "./src/pages/InfoHubPage";
+import SplashPage from "./src/pages/SplashPage";
+
+// El splash nativo de Expo se queda visible hasta que llamemos
+// SplashScreen.hideAsync(). Así evitamos el parpadeo en blanco entre que la
+// app arranca y que sabemos si hay una sesión guardada, y le damos paso a
+// nuestra propia pantalla de bienvenida (SplashPage) en vez del logo
+// default de Expo.
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
 function MobileApp() {
   const { user, ready, logout } = useAuth();
   const { cart, addToCart, changeQty, removeItem, clearCart, totalItems } = useCart();
-
-  const [screen, setScreen] = useState("splash");
-  const [prevScreen, setPrevScreen] = useState("splash");
-  const [tab, setTab] = useState("home");
-  const [products, setProducts] = useState([]);
-  const [orderOk, setOrderOk] = useState(false);
+  const { products } = useProducts(!!user);
+  const nav = useAppNavigation();
 
   useEffect(() => {
-    if (ready) setScreen(user ? "app" : "splash");
+    if (ready) {
+      nav.setScreen(user ? "app" : "splash");
+      SplashScreen.hideAsync().catch(() => {});
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready]);
 
-  useEffect(() => {
-    if (user) {
-      productsAPI.getAll().then((data) => setProducts(data.filter((p) => p.stock > 0))).catch(() => {});
-    }
-  }, [user]);
+  const onLogout = async () => {
+    await logout();
+    nav.resetToSplash();
+  };
 
-  const onLoginSuccess = () => { setScreen("app"); setTab("home"); };
-  const onLogout = async () => { await logout(); setScreen("splash"); setTab("home"); };
-  const openInfo = () => { setPrevScreen(screen); setScreen("info"); };
-  const closeInfo = () => setScreen(prevScreen);
+  const onLayoutRootView = useCallback(() => {
+    if (ready) SplashScreen.hideAsync().catch(() => {});
+  }, [ready]);
 
   if (!ready) {
-    return (
-      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: T.sidebarDeep }}>
-        <ActivityIndicator color="#fff" size="large" />
-      </View>
-    );
+    // Todavía no sabemos si hay sesión guardada: dejamos el splash nativo
+    // visible (no renderizamos nada encima) en vez de mostrar un spinner
+    // sobre un fondo distinto, para que la transición sea continua.
+    return <View style={{ flex: 1, backgroundColor: T.sidebarDeep }} onLayout={onLayoutRootView} />;
   }
 
-  if (screen === "splash") return <SplashPage onLogin={() => setScreen("login")} onRegister={() => setScreen("register")} onInfo={openInfo} />;
-  if (screen === "login") return <LoginPage onSuccess={onLoginSuccess} onRegister={() => setScreen("register")} onForgot={() => setScreen("forgot")} onBack={() => setScreen("splash")} />;
-  if (screen === "register") return <RegisterPage onBack={() => setScreen("login")} onSuccess={onLoginSuccess} />;
-  if (screen === "forgot") return <ForgotPage onBack={() => setScreen("login")} />;
-  if (screen === "info") return <InfoHubPage onBack={closeInfo} />;
+  if (nav.screen === "splash") {
+    return (
+      <SplashPage onLogin={() => nav.setScreen("login")} onRegister={() => nav.setScreen("register")} onInfo={nav.openInfo} />
+    );
+  }
+  if (nav.screen === "login") {
+    return (
+      <LoginPage
+        onSuccess={nav.onLoginSuccess}
+        onRegister={() => nav.setScreen("register")}
+        onForgot={() => nav.setScreen("forgot")}
+        onBack={() => nav.setScreen("splash")}
+      />
+    );
+  }
+  if (nav.screen === "register") {
+    return <RegisterPage onBack={() => nav.setScreen("login")} onSuccess={nav.onLoginSuccess} />;
+  }
+  if (nav.screen === "forgot") {
+    return <ForgotPage onBack={() => nav.setScreen("login")} />;
+  }
+  if (nav.screen === "info") {
+    return <InfoHubPage onBack={nav.closeInfo} />;
+  }
 
-  if (screen === "app") {
-    if (orderOk) {
-      return <OrderSuccessPage onContinue={() => { setOrderOk(false); setTab("catalog"); }} />;
+  if (nav.screen === "app") {
+    if (nav.orderOk) {
+      return <OrderSuccessPage onContinue={nav.continueAfterOrder} />;
     }
     return (
       <View style={{ flex: 1, backgroundColor: T.surface }}>
         <View style={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
-          {tab === "home" && (
-            <HomePage user={user} products={products} cart={cart} onAdd={addToCart} onGoCart={() => setTab("cart")} onGoCatalog={() => setTab("catalog")} />
+          {nav.tab === "home" && (
+            <HomePage user={user} products={products} cart={cart} onAdd={addToCart} onGoCart={() => nav.setTab("cart")} onGoCatalog={() => nav.setTab("catalog")} />
           )}
-          {tab === "catalog" && (
-            <CatalogPage products={products} cart={cart} onAdd={addToCart} onGoCart={() => setTab("cart")} />
+          {nav.tab === "catalog" && (
+            <CatalogPage products={products} cart={cart} onAdd={addToCart} onGoCart={() => nav.setTab("cart")} />
           )}
-          {tab === "cart" && (
-            <CartPage cart={cart} changeQty={changeQty} removeItem={removeItem} clearCart={clearCart} onOrderSuccess={() => setOrderOk(true)} />
+          {nav.tab === "cart" && (
+            <CartPage cart={cart} changeQty={changeQty} removeItem={removeItem} clearCart={clearCart} onOrderSuccess={nav.completeOrder} />
           )}
-          {tab === "profile" && <ProfilePage user={user} onLogout={onLogout} onOpenInfo={openInfo} />}
+          {nav.tab === "profile" && <ProfilePage user={user} onLogout={onLogout} onOpenInfo={nav.openInfo} />}
         </View>
-        <BottomNav tab={tab} setTab={setTab} cartCount={totalItems} />
+        <BottomNav tab={nav.tab} setTab={nav.setTab} cartCount={totalItems} />
       </View>
     );
   }

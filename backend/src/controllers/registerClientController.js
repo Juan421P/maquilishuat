@@ -4,6 +4,7 @@ import jsonwebtoken from "jsonwebtoken";
 
 import clientModel from "../models/client.js";
 import { config } from "../../config.js";
+import { brandEmailHtml } from "../utils/emailTemplate.js";
 
 const registerClientController = {};
 
@@ -40,8 +41,14 @@ registerClientController.register = async (req, res) => {
         const mailOptions = {
             from: config.email.user,
             to: email,
-            subject: "Verificación de cuenta",
-            text: "Para verificar tu cuenta, utiliza este código: " + randomNumber + " expira en 15min"
+            subject: "Verificación de cuenta - Maquilishuat",
+            text: "Para verificar tu cuenta, utiliza este código: " + randomNumber + " expira en 15min",
+            html: brandEmailHtml({
+                title: `¡Hola, ${name}!`,
+                intro: "Usa este código para verificar tu cuenta de Maquilishuat. Expira en 15 minutos.",
+                code: randomNumber,
+                footer: "Si no creaste una cuenta con nosotros, puedes ignorar este correo.",
+            }),
         };
 
         transporter.sendMail(mailOptions, (error, info) => {
@@ -49,7 +56,12 @@ registerClientController.register = async (req, res) => {
                 console.log("error" + error);
                 return res.status(500).json({ message: "Error sending email" });
             }
-            return res.status(200).json({ message: "Email sent" });
+            // `registrationToken` se envía también en el body porque los
+            // clientes nativos (Expo Go / apps móviles) no tienen un cookie
+            // jar como el navegador y no pueden depender de la cookie para
+            // completar el paso de verificación. La app web sigue
+            // funcionando igual porque usa la cookie automáticamente.
+            return res.status(200).json({ message: "Email sent", registrationToken: token });
         });
 
     } catch (error) {
@@ -60,9 +72,10 @@ registerClientController.register = async (req, res) => {
 
 registerClientController.verifyCode = async (req, res) => {
     try {
-        const { verificationCodeRequest } = req.body;
+        const { verificationCodeRequest, registrationToken } = req.body;
 
-        const token = req.cookies.RegistrationCookie;
+        const headerToken = req.headers["x-registration-token"];
+        const token = req.cookies.RegistrationCookie || registrationToken || headerToken;
 
         if (!token) {
             return res.status(400).json({ message: "El código expiró o la sesión es inválida, vuelve a registrarte" });

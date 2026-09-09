@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Text, TouchableOpacity, View } from "react-native";
+import { Image, Text, TouchableOpacity, View } from "react-native";
 import { T } from "../utils/theme";
 import { LinearGradient } from "expo-linear-gradient";
 import Ic from "./Ic";
@@ -8,6 +8,8 @@ import { formatPrice } from "../utils/format";
 
 export default function ProductCard({ product, inCart, onAdd }) {
   const [expanded, setExpanded] = useState(false);
+  const imageUrl = product.images?.[0]?.image;
+  const [imageFailed, setImageFailed] = useState(false);
 
   return (
     <View style={{ backgroundColor: T.surface, borderRadius: 12, borderWidth: 1, borderColor: T.border, padding: 14 }}>
@@ -20,9 +22,19 @@ export default function ProductCard({ product, inCart, onAdd }) {
             backgroundColor: "#f3e8ff",
             alignItems: "center",
             justifyContent: "center",
+            overflow: "hidden",
           }}
         >
-          <Ic n="water" size={24} color={T.purple} />
+          {imageUrl && !imageFailed ? (
+            <Image
+              source={{ uri: imageUrl }}
+              style={{ width: 48, height: 48 }}
+              resizeMode="cover"
+              onError={() => setImageFailed(true)}
+            />
+          ) : (
+            <Ic n="water" size={24} color={T.purple} />
+          )}
         </View>
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text numberOfLines={1} style={{ fontSize: 14, fontWeight: "700", color: T.text1 }}>

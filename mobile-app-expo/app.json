@@ -6,19 +6,38 @@
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "backgroundColor": "#4a0d5c",
-    "assetBundlePatterns": ["**/*"],
+    "icon": "./assets/icon.png",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.maquilishuat.mobile"
     },
     "android": {
       "package": "com.maquilishuat.mobile",
+      "usesCleartextTraffic": true,
       "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#4a0d5c"
       }
     },
     "web": {
-      "bundler": "metro"
-    }
+      "bundler": "metro",
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 220,
+          "resizeMode": "contain",
+          "backgroundColor": "#4a0d5c"
+        }
+      ],
+      "expo-secure-store",
+      "expo-status-bar"
+    ]
   }
 }

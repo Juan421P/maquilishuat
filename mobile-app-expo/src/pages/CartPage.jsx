@@ -1,50 +1,17 @@
-import { useState } from "react";
 import { ScrollView, Text, TouchableOpacity, View } from "react-native";
-import { useToast } from "../components/Toast";
+import { Controller } from "react-hook-form";
 import { T } from "../utils/theme";
-import { cartAPI, salesAPI } from "../services/api";
-import { formatPrice, cartTotal } from "../utils/format";
-import { validateAddress } from "../utils/validators";
+import { formatPrice } from "../utils/format";
+import { useCheckoutForm } from "../hooks/useCheckoutForm";
 import AppBar from "../layout/AppBar";
 import Field from "../components/Field";
 import Alert from "../components/Alert";
 import Btn from "../components/Btn";
 import Ic from "../components/Ic";
 
-const SHIPPING = 1.5;
-const METODOS = ["Efectivo", "Transferencia", "Tarjeta"];
-
 export default function CartPage({ cart, changeQty, removeItem, clearCart, onOrderSuccess }) {
-  const toast = useToast();
-  const [addr, setAddr] = useState("");
-  const [addrError, setAddrError] = useState("");
-  const [metodo, setMetodo] = useState("Efectivo");
-  const [loading, setLoading] = useState(false);
-  const [err, setErr] = useState("");
-
-  const subtotal = cartTotal(cart);
-  const total = subtotal + (subtotal > 0 ? SHIPPING : 0);
-
-  const handleOrder = async () => {
-    const addrErr = validateAddress(addr);
-    setAddrError(addrErr);
-    if (addrErr) return;
-    setLoading(true); setErr("");
-    try {
-      const products = cart.map((x) => ({ product_id: x.id, amount: x.qty }));
-      const cartRes = await cartAPI.create(products);
-      await salesAPI.create(cartRes.cart._id, addr.trim(), metodo);
-      clearCart();
-      toast?.success("¡Pedido registrado con éxito!");
-      onOrderSuccess();
-    } catch (e) {
-      const msg = e.message || "Error al procesar el pedido";
-      setErr(msg);
-      toast?.error(msg);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { control, errors, submit, loading, serverError, subtotal, shipping, total, metodos, rules } =
+    useCheckoutForm({ cart, clearCart, onOrderSuccess });
 
   if (cart.length === 0) {
     return (
@@ -93,27 +60,47 @@ export default function CartPage({ cart, changeQty, removeItem, clearCart, onOrd
 
         <View style={{ backgroundColor: T.surface, borderRadius: 12, borderWidth: 1, borderColor: T.border, padding: 14, marginBottom: 12 }}>
           <Text style={{ fontSize: 13, fontWeight: "800", color: T.text1, marginBottom: 12 }}>Datos de entrega</Text>
-          <Field label="Dirección" value={addr} onChangeText={(v) => { setAddr(v); setAddrError(""); setErr(""); }} placeholder="Col. San Benito, Av. La Revolución #25" iconName="map" error={addrError} />
+          <Controller
+            control={control}
+            name="addr"
+            rules={rules.addr}
+            render={({ field }) => (
+              <Field
+                label="Dirección"
+                value={field.value}
+                onChangeText={field.onChange}
+                placeholder="Col. San Benito, Av. La Revolución #25"
+                iconName="map"
+                error={errors.addr?.message}
+              />
+            )}
+          />
           <View>
             <Text style={{ fontSize: 11, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.6, color: T.text3, marginBottom: 7 }}>
               Método de pago
             </Text>
-            <View style={{ flexDirection: "row", gap: 6 }}>
-              {METODOS.map((m) => (
-                <TouchableOpacity
-                  key={m}
-                  onPress={() => setMetodo(m)}
-                  style={{ flex: 1, paddingVertical: 9, borderRadius: 8, alignItems: "center", backgroundColor: metodo === m ? T.purple : "#f3e8ff" }}
-                >
-                  <Text style={{ fontSize: 11, fontWeight: "700", color: metodo === m ? "#fff" : T.purple }}>{m}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+            <Controller
+              control={control}
+              name="metodo"
+              render={({ field }) => (
+                <View style={{ flexDirection: "row", gap: 6 }}>
+                  {metodos.map((m) => (
+                    <TouchableOpacity
+                      key={m}
+                      onPress={() => field.onChange(m)}
+                      style={{ flex: 1, paddingVertical: 9, borderRadius: 8, alignItems: "center", backgroundColor: field.value === m ? T.purple : "#f3e8ff" }}
+                    >
+                      <Text style={{ fontSize: 11, fontWeight: "700", color: field.value === m ? "#fff" : T.purple }}>{m}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+            />
           </View>
         </View>
 
         <View style={{ backgroundColor: T.surface, borderRadius: 12, borderWidth: 1, borderColor: T.border, padding: 14 }}>
-          {[["Subtotal", formatPrice(subtotal)], ["Envío", formatPrice(SHIPPING)]].map(([l, v]) => (
+          {[["Subtotal", formatPrice(subtotal)], ["Envío", formatPrice(shipping)]].map(([l, v]) => (
             <View key={l} style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 7 }}>
               <Text style={{ fontSize: 13.5, color: T.text3 }}>{l}</Text>
               <Text style={{ fontSize: 13.5, color: T.text3 }}>{v}</Text>
@@ -124,8 +111,8 @@ export default function CartPage({ cart, changeQty, removeItem, clearCart, onOrd
             <Text style={{ fontSize: 16, fontWeight: "800", color: T.purpleDark }}>{formatPrice(total)}</Text>
           </View>
           <View style={{ marginTop: 12 }}>
-            <Alert msg={err} />
-            <Btn onPress={handleOrder} disabled={loading}>{loading ? "Procesando..." : "Confirmar pedido"}</Btn>
+            <Alert msg={serverError} />
+            <Btn onPress={submit} disabled={loading}>{loading ? "Procesando..." : "Confirmar pedido"}</Btn>
           </View>
         </View>
         <View style={{ height: 14 }} />

@@ -1,14 +1,7 @@
-import { useState } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from "react-native";
+import { Controller } from "react-hook-form";
 import { T } from "../utils/theme";
-import { authAPI } from "../services/api";
-import {
-  validateEmail,
-  validateCode,
-  validatePassword,
-  validateConfirmPassword,
-  runValidators,
-} from "../utils/validators";
+import { useForgotPasswordForm } from "../hooks/useForgotPasswordForm";
 import AuthHeader from "../layout/AuthHeader";
 import Field from "../components/Field";
 import Alert from "../components/Alert";
@@ -16,67 +9,7 @@ import Btn from "../components/Btn";
 import Ic from "../components/Ic";
 
 export default function ForgotPage({ onBack }) {
-  const [step, setStep] = useState(1);
-  const [email, setEmail] = useState("");
-  const [code, setCode] = useState("");
-  const [pw, setPw] = useState("");
-  const [pw2, setPw2] = useState("");
-  const [fieldErrors, setFieldErrors] = useState({});
-  const [loading, setLoading] = useState(false);
-  const [err, setErr] = useState("");
-  const [done, setDone] = useState(false);
-
-  const clearFieldError = (key) => setFieldErrors((e) => ({ ...e, [key]: "" }));
-
-  const s1 = async () => {
-    const emailErr = validateEmail(email);
-    setFieldErrors({ email: emailErr });
-    if (emailErr) return;
-    setLoading(true);
-    try {
-      await authAPI.requestRecovery(email.trim());
-      setStep(2);
-      setErr("");
-    } catch (e) {
-      setErr(e.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const s2 = async () => {
-    const codeErr = validateCode(code);
-    setFieldErrors({ code: codeErr });
-    if (codeErr) return;
-    setLoading(true);
-    try {
-      await authAPI.verifyRecovery(code.trim());
-      setStep(3);
-      setErr("");
-    } catch (e) {
-      setErr(e.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const s3 = async () => {
-    const { valid, errors } = runValidators({
-      pw: validatePassword(pw),
-      pw2: validateConfirmPassword(pw, pw2),
-    });
-    setFieldErrors(errors);
-    if (!valid) return;
-    setLoading(true);
-    try {
-      await authAPI.newPassword(pw, pw2);
-      setDone(true);
-    } catch (e) {
-      setErr(e.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { step, loading, serverError, done, emailForm, codeForm, passwordForm } = useForgotPasswordForm();
 
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: "#fff" }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
@@ -101,54 +34,82 @@ export default function ForgotPage({ onBack }) {
           </View>
         ) : (
           <>
-            <Alert msg={err} />
+            <Alert msg={serverError} />
             {step === 1 && (
               <>
-                <Field
-                  label="Correo electrónico"
-                  type="email"
-                  value={email}
-                  onChangeText={(v) => { setEmail(v); clearFieldError("email"); setErr(""); }}
-                  placeholder="correo@ejemplo.com"
-                  iconName="mail"
-                  error={fieldErrors.email}
+                <Controller
+                  control={emailForm.control}
+                  name="email"
+                  rules={emailForm.rules.email}
+                  render={({ field }) => (
+                    <Field
+                      label="Correo electrónico"
+                      type="email"
+                      value={field.value}
+                      onChangeText={field.onChange}
+                      placeholder="correo@ejemplo.com"
+                      iconName="mail"
+                      error={emailForm.errors.email?.message}
+                    />
+                  )}
                 />
-                <Btn onPress={s1} disabled={loading}>{loading ? "Enviando..." : "Enviar código"}</Btn>
+                <Btn onPress={emailForm.submit} disabled={loading}>{loading ? "Enviando..." : "Enviar código"}</Btn>
               </>
             )}
             {step === 2 && (
               <>
-                <Field
-                  label="Código recibido"
-                  value={code}
-                  onChangeText={(v) => { setCode(v); clearFieldError("code"); setErr(""); }}
-                  placeholder="Ingresa el código"
-                  error={fieldErrors.code}
+                <Controller
+                  control={codeForm.control}
+                  name="code"
+                  rules={codeForm.rules.code}
+                  render={({ field }) => (
+                    <Field
+                      label="Código recibido"
+                      value={field.value}
+                      onChangeText={field.onChange}
+                      placeholder="Ingresa el código"
+                      error={codeForm.errors.code?.message}
+                    />
+                  )}
                 />
-                <Btn onPress={s2} disabled={loading}>{loading ? "Verificando..." : "Verificar código"}</Btn>
+                <Btn onPress={codeForm.submit} disabled={loading}>{loading ? "Verificando..." : "Verificar código"}</Btn>
               </>
             )}
             {step === 3 && (
               <>
-                <Field
-                  label="Nueva contraseña"
-                  type="password"
-                  value={pw}
-                  onChangeText={(v) => { setPw(v); clearFieldError("pw"); setErr(""); }}
-                  placeholder="Mínimo 8 caracteres, 1 letra y 1 número"
-                  iconName="lock"
-                  error={fieldErrors.pw}
+                <Controller
+                  control={passwordForm.control}
+                  name="pw"
+                  rules={passwordForm.rules.pw}
+                  render={({ field }) => (
+                    <Field
+                      label="Nueva contraseña"
+                      type="password"
+                      value={field.value}
+                      onChangeText={field.onChange}
+                      placeholder="Mínimo 8 caracteres, 1 letra y 1 número"
+                      iconName="lock"
+                      error={passwordForm.errors.pw?.message}
+                    />
+                  )}
                 />
-                <Field
-                  label="Confirmar contraseña"
-                  type="password"
-                  value={pw2}
-                  onChangeText={(v) => { setPw2(v); clearFieldError("pw2"); setErr(""); }}
-                  placeholder="Repite la contraseña"
-                  iconName="lock"
-                  error={fieldErrors.pw2}
+                <Controller
+                  control={passwordForm.control}
+                  name="pw2"
+                  rules={passwordForm.rules.pw2}
+                  render={({ field }) => (
+                    <Field
+                      label="Confirmar contraseña"
+                      type="password"
+                      value={field.value}
+                      onChangeText={field.onChange}
+                      placeholder="Repite la contraseña"
+                      iconName="lock"
+                      error={passwordForm.errors.pw2?.message}
+                    />
+                  )}
                 />
-                <Btn onPress={s3} disabled={loading}>{loading ? "Guardando..." : "Guardar contraseña"}</Btn>
+                <Btn onPress={passwordForm.submit} disabled={loading}>{loading ? "Guardando..." : "Guardar contraseña"}</Btn>
               </>
             )}
           </>

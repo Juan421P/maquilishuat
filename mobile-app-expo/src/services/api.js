@@ -2,12 +2,24 @@ import * as SecureStore from "expo-secure-store";
 import { API_URL } from "../config";
 
 const TOKEN_KEY = "maq_token";
+const REG_TOKEN_KEY = "maq_registration_token";
+const RECOVERY_TOKEN_KEY = "maq_recovery_token";
 
-export const tokenStore = {
-  get: () => SecureStore.getItemAsync(TOKEN_KEY),
-  set: (token) => SecureStore.setItemAsync(TOKEN_KEY, token),
-  clear: () => SecureStore.deleteItemAsync(TOKEN_KEY),
-};
+const makeStore = (key) => ({
+  get: () => SecureStore.getItemAsync(key),
+  set: (value) => SecureStore.setItemAsync(key, value),
+  clear: () => SecureStore.deleteItemAsync(key),
+});
+
+export const tokenStore = makeStore(TOKEN_KEY);
+
+// El backend usa cookies (RegistrationCookie / recoveryCookie) para los
+// pasos intermedios de registro y recuperación de contraseña. En Expo Go
+// no existe un cookie jar como en el navegador, así que esos tokens se
+// guardan aquí y se reenvían a mano en cada request (ver `req()` abajo y
+// los métodos de `authAPI`).
+export const registrationTokenStore = makeStore(REG_TOKEN_KEY);
+export const recoveryTokenStore = makeStore(RECOVERY_TOKEN_KEY);
 
 async function req(path, opts = {}) {
   const token = await tokenStore.get();
@@ -42,29 +54,53 @@ export const authAPI = {
     }
   },
 
-  register: (name, lastname, birthdate, email, password) =>
-    req("/registerClient", {
+  register: async (name, lastname, birthdate, email, password) => {
+    const data = await req("/registerClient", {
       method: "POST",
       body: JSON.stringify({ name, lastname, birthdate, email, password }),
-    }),
+    });
+    if (data.registrationToken) await registrationTokenStore.set(data.registrationToken);
+    return data;
+  },
 
-  verifyCode: (verificationCodeRequest) =>
-    req("/registerClient/verifyCodeEmail", {
+  verifyCode: async (verificationCodeRequest) => {
+    const registrationToken = await registrationTokenStore.get();
+    const data = await req("/registerClient/verifyCodeEmail", {
       method: "POST",
-      body: JSON.stringify({ verificationCodeRequest }),
-    }),
+      body: JSON.stringify({ verificationCodeRequest, registrationToken }),
+    });
+    await registrationTokenStore.clear();
+    return data;
+  },
 
-  requestRecovery: (email) =>
-    req("/recoveryClient/requestCode", { method: "POST", body: JSON.stringify({ email }) }),
-
-  verifyRecovery: (code) =>
-    req("/recoveryClient/verifyCode", { method: "POST", body: JSON.stringify({ code }) }),
-
-  newPassword: (newPassword, confirmNewPassword) =>
-    req("/recoveryClient/newPassword", {
+  requestRecovery: async (email) => {
+    const data = await req("/recoveryClient/requestCode", {
       method: "POST",
-      body: JSON.stringify({ newPassword, confirmNewPassword }),
-    }),
+      body: JSON.stringify({ email }),
+    });
+    if (data.recoveryToken) await recoveryTokenStore.set(data.recoveryToken);
+    return data;
+  },
+
+  verifyRecovery: async (code) => {
+    const recoveryToken = await recoveryTokenStore.get();
+    const data = await req("/recoveryClient/verifyCode", {
+      method: "POST",
+      body: JSON.stringify({ code, recoveryToken }),
+    });
+    if (data.recoveryToken) await recoveryTokenStore.set(data.recoveryToken);
+    return data;
+  },
+
+  newPassword: async (newPassword, confirmNewPassword) => {
+    const recoveryToken = await recoveryTokenStore.get();
+    const data = await req("/recoveryClient/newPassword", {
+      method: "POST",
+      body: JSON.stringify({ newPassword, confirmNewPassword, recoveryToken }),
+    });
+    await recoveryTokenStore.clear();
+    return data;
+  },
 };
 
 // ─── Productos ────────────────────────────────────────────────────────────

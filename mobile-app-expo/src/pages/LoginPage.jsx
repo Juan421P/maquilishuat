@@ -1,9 +1,7 @@
-import { useState } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { Controller } from "react-hook-form";
 import { T } from "../utils/theme";
-import { useAuth } from "../context/AuthContext";
-import { useToast } from "../components/Toast";
-import { validateEmail, validateRequired, runValidators } from "../utils/validators";
+import { useLoginForm } from "../hooks/useLoginForm";
 import AuthHeader from "../layout/AuthHeader";
 import Field from "../components/Field";
 import Alert from "../components/Alert";
@@ -11,78 +9,56 @@ import Btn from "../components/Btn";
 import Ic from "../components/Ic";
 
 export default function LoginPage({ onSuccess, onRegister, onForgot, onBack }) {
-  const { login } = useAuth();
-  const toast = useToast();
-  const [form, setForm] = useState({ email: "", pw: "" });
-  const [fieldErrors, setFieldErrors] = useState({});
-  const [show, setShow] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [err, setErr] = useState("");
-
-  const set = (k) => (v) => {
-    setForm((f) => ({ ...f, [k]: v }));
-    setFieldErrors((e) => ({ ...e, [k]: "" }));
-    setErr("");
-  };
-
-  const validate = () =>
-    runValidators({
-      email: validateEmail(form.email),
-      pw: validateRequired(form.pw, "La contraseña"),
-    });
-
-  const handle = async () => {
-    const { valid, errors } = validate();
-    setFieldErrors(errors);
-    if (!valid) return;
-
-    setLoading(true);
-    try {
-      await login(form.email.trim(), form.pw);
-      toast?.success("Sesión iniciada");
-      onSuccess();
-    } catch (e) {
-      const msg = e.message || "Correo o contraseña incorrectos";
-      setErr(msg);
-      toast?.error(msg);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { control, errors, loading, serverError, showPassword, toggleShowPassword, submit, rules } =
+    useLoginForm({ onSuccess });
 
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: "#fff" }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <AuthHeader title="Bienvenido" sub="Accede a tu cuenta de cliente" onBack={onBack} />
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 24, paddingTop: 28 }}>
-        <Alert msg={err} />
-        <Field
-          label="Correo"
-          type="email"
-          value={form.email}
-          onChangeText={set("email")}
-          placeholder="correo@ejemplo.com"
-          iconName="mail"
-          autoComplete="email"
-          error={fieldErrors.email}
+        <Alert msg={serverError} />
+        <Controller
+          control={control}
+          name="email"
+          rules={rules.email}
+          render={({ field }) => (
+            <Field
+              label="Correo"
+              type="email"
+              value={field.value}
+              onChangeText={field.onChange}
+              placeholder="correo@ejemplo.com"
+              iconName="mail"
+              autoComplete="email"
+              error={errors.email?.message}
+            />
+          )}
         />
-        <Field
-          label="Contraseña"
-          type={show ? "text" : "password"}
-          value={form.pw}
-          onChangeText={set("pw")}
-          placeholder="••••••••"
-          iconName="lock"
-          error={fieldErrors.pw}
-          right={
-            <TouchableOpacity onPress={() => setShow((s) => !s)}>
-              <Ic n={show ? "eyeOff" : "eye"} size={18} color={T.textMut} />
-            </TouchableOpacity>
-          }
+        <Controller
+          control={control}
+          name="pw"
+          rules={rules.pw}
+          render={({ field }) => (
+            <Field
+              label="Contraseña"
+              type={showPassword ? "text" : "password"}
+              value={field.value}
+              onChangeText={field.onChange}
+              placeholder="••••••••"
+              iconName="lock"
+              error={errors.pw?.message}
+              right={
+                <TouchableOpacity onPress={toggleShowPassword}>
+                  <Ic n={showPassword ? "eyeOff" : "eye"} size={18} color={T.textMut} />
+                </TouchableOpacity>
+              }
+            />
+          )}
         />
         <TouchableOpacity onPress={onForgot} style={{ marginBottom: 24 }}>
           <Text style={{ color: T.purple, fontSize: 14, fontWeight: "600" }}>¿Olvidaste tu contraseña?</Text>
         </TouchableOpacity>
-        <Btn onPress={handle} disabled={loading}>
+        <Btn onPress={submit} disabled={loading}>
           {loading ? "Verificando..." : "Ingresar"}
         </Btn>
         <View style={{ flexDirection: "row", justifyContent: "center", marginTop: 20 }}>
