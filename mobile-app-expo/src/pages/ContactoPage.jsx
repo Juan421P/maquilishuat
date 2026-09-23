@@ -3,30 +3,33 @@ import { Controller } from "react-hook-form";
 import { T } from "../utils/theme";
 import Ic from "../components/Ic";
 import Btn from "../components/Btn";
-import { useContactForm } from "../hooks/useContactForm";
+import { useContactForm, CONTACT } from "../hooks/useContactForm";
+import Alert from "../components/Alert";
 
 const INFO = [
-  { icon: "phone", label: "Teléfono", lines: ["2222-0000", "WhatsApp disponible"] },
-  { icon: "mail", label: "Correo", lines: ["pedidos@maquilishuat.com"] },
+  { icon: "phone", label: "Teléfono", lines: [CONTACT.phone, "WhatsApp disponible"] },
+  { icon: "mail", label: "Correo", lines: [CONTACT.email] },
   { icon: "map", label: "Dirección", lines: ["Col. Escalón, San Salvador", "Solo con cita previa"] },
   { icon: "clock", label: "Horario", lines: ["Lun – Sáb: 7:00 a.m. – 5:00 p.m.", "Domingos cerrado"] },
 ];
 
 export default function ContactoPage() {
-  const { control, errors, submit, enviado, sendAnother, nombre, asuntos, rules } = useContactForm();
+  const { control, errors, submit, opened, openError, sendAnother, nombre, asuntos, rules, callPhone, openWhatsApp, openEmail } =
+    useContactForm();
 
-  if (enviado) {
+  if (opened) {
     return (
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 32, gap: 12 }}>
         <View style={{ width: 68, height: 68, borderRadius: 34, backgroundColor: "#f0fdf4", alignItems: "center", justifyContent: "center" }}>
           <Ic n="ok" size={30} color={T.green} />
         </View>
-        <Text style={{ fontSize: 17, fontWeight: "800", color: T.text1 }}>¡Mensaje recibido!</Text>
+        <Text style={{ fontSize: 17, fontWeight: "800", color: T.text1 }}>Tu mensaje está listo</Text>
         <Text style={{ fontSize: 13.5, color: T.text3, textAlign: "center", lineHeight: 20 }}>
-          Gracias por escribirnos, {nombre || "visitante"}. Te contactaremos a la brevedad posible.
+          {nombre ? `${nombre.split(" ")[0]}, a` : "A"}brimos tu app de correo con el mensaje escrito.
+          Para que nos llegue, envíalo desde ahí a {CONTACT.email}.
         </Text>
         <TouchableOpacity onPress={sendAnother} style={{ marginTop: 6 }}>
-          <Text style={{ color: T.purple, fontWeight: "700", fontSize: 14 }}>Enviar otro mensaje</Text>
+          <Text style={{ color: T.purple, fontWeight: "700", fontSize: 14 }}>Escribir otro mensaje</Text>
         </TouchableOpacity>
       </View>
     );
@@ -36,9 +39,33 @@ export default function ContactoPage() {
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 20, paddingBottom: 32 }}>
         <Text style={{ fontSize: 22, fontWeight: "800", color: T.text1, marginBottom: 6 }}>Contáctanos</Text>
-        <Text style={{ fontSize: 13.5, color: T.textMut, marginBottom: 18, lineHeight: 20 }}>
+        <Text style={{ fontSize: 13.5, color: T.textMut, marginBottom: 14, lineHeight: 20 }}>
           ¿Tienes preguntas o quieres hacer un pedido? Te respondemos en menos de 24 horas.
         </Text>
+
+        <View style={{ flexDirection: "row", gap: 8, marginBottom: 18 }}>
+          {[
+            { icon: "phone", label: "Llamar", onPress: callPhone },
+            { icon: "message", label: "WhatsApp", onPress: openWhatsApp },
+            { icon: "mail", label: "Correo", onPress: openEmail },
+          ].map(({ icon, label, onPress }) => (
+            <TouchableOpacity
+              key={label}
+              onPress={onPress}
+              accessibilityRole="button"
+              style={{ flex: 1, alignItems: "center", gap: 5, paddingVertical: 12, borderRadius: 12, backgroundColor: "#f3e8ff" }}
+            >
+              <Ic n={icon} size={18} color={T.purple} />
+              <Text style={{ fontSize: 12, fontWeight: "700", color: T.purple }}>{label}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <Text style={{ fontSize: 15, fontWeight: "800", color: T.text1, marginBottom: 4 }}>Escríbenos</Text>
+        <Text style={{ fontSize: 12.5, color: T.textMut, marginBottom: 12, lineHeight: 18 }}>
+          Al tocar "Preparar correo" se abrirá tu app de correo con el mensaje listo para enviar.
+        </Text>
+        <Alert msg={openError} />
 
         <View style={{ marginBottom: 12 }}>
           <Text style={{ fontSize: 11, fontWeight: "700", textTransform: "uppercase", color: T.text3, marginBottom: 5 }}>Tu nombre</Text>
@@ -72,6 +99,7 @@ export default function ContactoPage() {
                 placeholderTextColor={T.textMut}
                 keyboardType="email-address"
                 autoCapitalize="none"
+                autoCorrect={false}
                 style={{ borderWidth: 1.5, borderColor: errors.email ? T.red : T.border, borderRadius: 10, padding: 11, fontSize: 14, color: T.text1 }}
               />
             )}
@@ -120,7 +148,7 @@ export default function ContactoPage() {
           />
           {errors.mensaje ? <Text style={{ fontSize: 12, color: T.red, marginTop: 3 }}>{errors.mensaje.message}</Text> : null}
         </View>
-        <Btn onPress={submit}>Enviar mensaje</Btn>
+        <Btn onPress={submit}>Preparar correo</Btn>
 
         <Text style={{ fontSize: 15, fontWeight: "800", color: T.text1, marginTop: 28, marginBottom: 12 }}>Información de contacto</Text>
         <View style={{ gap: 12 }}>

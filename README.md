@@ -103,15 +103,25 @@ npm run dev
 
 Abre `http://localhost:5173`. Vite hace proxy de `/api` hacia el backend.
 
-### 3. Mobile-app (cliente)
+### 3. App móvil de clientes (`mobile-app-expo`, Expo SDK 57)
 
 ```bash
-cd mobile-app
+cd mobile-app-expo
 npm install
-npm run dev
+npx expo start          # Expo Go / emulador
+# o bien: npm run android (compila la app nativa)
 ```
 
-Se abre en el navegador dentro de un frame de teléfono decorativo (en pantallas de escritorio) o a pantalla completa (en un dispositivo móvil real).
+En desarrollo la app detecta sola el backend (emulador → `10.0.2.2:4000`, celular → IP de Metro). Para un build de producción define `EXPO_PUBLIC_API_URL` (ver `mobile-app-expo/.env.example`).
+
+### Pruebas del backend
+
+```bash
+cd backend
+npm test   # necesita un MongoDB local en mongodb://127.0.0.1:27017 (o TEST_DB_URI)
+```
+
+Las pruebas usan una base `maquilishuat_test` que se borra al iniciar y no envían correos reales.
 
 ## Variables de entorno
 
@@ -128,6 +138,8 @@ El backend lee estas variables desde `backend/.env` (no se versiona, cada quien 
 | `CLOUDINARY_CLOUD_NAME` | Nombre de la cuenta de Cloudinary |
 | `CLOUDINARY_API_KEY` | API key de Cloudinary |
 | `CLOUDINARY_API_SECRET` | API secret de Cloudinary |
+
+La app móvil lee `EXPO_PUBLIC_API_URL` desde `mobile-app-expo/.env` (URL base del backend con `/api`, sin barra final). Es obligatoria para builds de producción.
 
 ## Funcionalidades principales
 

@@ -1,5 +1,6 @@
 import { Schema, model } from 'mongoose';
 import bcrypt from 'bcryptjs';
+import { EMAIL_REGEX } from '../utils/validation.js';
 const schema = new Schema({
     name: {
         type: String,
@@ -23,7 +24,7 @@ const schema = new Schema({
         unique: true,
         lowercase: true,
         trim: true,
-        match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'invalid email address']
+        match: [EMAIL_REGEX, 'Ingresa un correo válido']
     },
     verified_email: {
         type: Boolean,

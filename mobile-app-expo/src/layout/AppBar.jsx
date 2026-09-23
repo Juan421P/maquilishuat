@@ -4,7 +4,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { T, GRAD_COLORS } from "../utils/theme";
 import Ic from "../components/Ic";
 
-export default function AppBar({ title, cartCount, onCartPress }) {
+// `onBack`: en pantallas secundarias (detalle de producto, de pedido...)
+// el ícono de la marca se reemplaza por un botón para volver.
+export default function AppBar({ title, cartCount, onCartPress, onBack }) {
   const insets = useSafeAreaInsets();
   return (
     <LinearGradient colors={GRAD_COLORS} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ paddingTop: insets.top }}>
@@ -17,20 +19,39 @@ export default function AppBar({ title, cartCount, onCartPress }) {
           justifyContent: "space-between",
         }}
       >
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-          <View
-            style={{
-              width: 34,
-              height: 34,
-              borderRadius: 9,
-              backgroundColor: "rgba(255,255,255,0.2)",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <Ic n="drop" size={18} color="#fff" />
-          </View>
-          <Text style={{ color: "#fff", fontSize: 17, fontWeight: "800" }}>{title || "Maquilishuat"}</Text>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 10, flex: 1, minWidth: 0 }}>
+          {onBack ? (
+            <TouchableOpacity
+              onPress={onBack}
+              accessibilityRole="button"
+              accessibilityLabel="Volver"
+              hitSlop={8}
+              style={{
+                width: 34,
+                height: 34,
+                borderRadius: 9,
+                backgroundColor: "rgba(255,255,255,0.2)",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Ic n="back" size={18} color="#fff" />
+            </TouchableOpacity>
+          ) : (
+            <View
+              style={{
+                width: 34,
+                height: 34,
+                borderRadius: 9,
+                backgroundColor: "rgba(255,255,255,0.2)",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Ic n="drop" size={18} color="#fff" />
+            </View>
+          )}
+          <Text numberOfLines={1} style={{ color: "#fff", fontSize: 17, fontWeight: "800", flexShrink: 1 }}>{title || "Maquilishuat"}</Text>
         </View>
         {onCartPress && (
           <TouchableOpacity

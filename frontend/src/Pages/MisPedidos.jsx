@@ -76,9 +76,16 @@ export default function MisPedidos() {
                         <span>${(item.subtotal || 0).toFixed(2)}</span>
                       </div>
                     ))}
+                    {pedido.shipping_cost > 0 && (
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "var(--text-secondary)" }}>
+                        <span>Envío a domicilio</span>
+                        <span>${pedido.shipping_cost.toFixed(2)}</span>
+                      </div>
+                    )}
                     <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13.5, fontWeight: 700, color: "var(--text-primary)", borderTop: "1px solid var(--gray-100)", paddingTop: 6, marginTop: 2 }}>
                       <span>Total</span>
-                      <span>${(cart.total_with_discount ?? cart.total ?? 0).toFixed(2)}</span>
+                      {/* `pedido.total` (con envío) existe en las ventas nuevas; las antiguas usan el total del carrito */}
+                      <span>${(pedido.total ?? cart.total_with_discount ?? cart.total ?? 0).toFixed(2)}</span>
                     </div>
                   </div>
                 )}

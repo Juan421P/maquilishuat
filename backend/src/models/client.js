@@ -1,5 +1,6 @@
 import { Schema, model } from 'mongoose';
 import bcrypt from 'bcryptjs';
+import { EMAIL_REGEX, ageInYears, MIN_AGE } from '../utils/validation.js';
 const schema = new Schema({
     name: {
         type: String,
@@ -23,7 +24,7 @@ const schema = new Schema({
         unique: true,
         lowercase: true,
         trim: true,
-        match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'invalid email address']
+        match: [EMAIL_REGEX, 'Ingresa un correo válido']
     },
     birthdate: {
         type: Date,
@@ -31,12 +32,8 @@ const schema = new Schema({
         validate: {
             validator: (value) => {
                 if (!value || isNaN(value.getTime())) return false;
-                const today = new Date();
-                const birthdate = new Date(value);
-                let age = today.getFullYear() - birthdate.getFullYear();
-                const monthDiff = today.getMonth() - birthdate.getMonth();
-                if(monthDiff < 0 || monthDiff === 0 && today.getDate() < birthdate.getDate()) age--;
-                return (age >= 18);
+                // Componentes UTC: ver ageInYears() en utils/validation.js
+                return ageInYears(value) >= MIN_AGE;
             }, message: 'Debes ser mayor de 18 años'
         }
     },

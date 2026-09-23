@@ -16,6 +16,8 @@ export default function AuthHeader({ title, sub, onBack }) {
       {onBack && (
         <TouchableOpacity
           onPress={onBack}
+          accessibilityRole="button"
+          accessibilityLabel="Volver"
           style={{
             alignSelf: "flex-start",
             flexDirection: "row",

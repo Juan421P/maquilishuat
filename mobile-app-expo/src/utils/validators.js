@@ -3,11 +3,70 @@
 // devuelve un string con el mensaje de error, o "" si el valor es válido.
 // Se usan tanto desde react-hook-form (como "validate") como desde
 // runValidators() para validaciones que se disparan a mano.
+//
+// IMPORTANTE: estas reglas replican las del backend
+// (backend/src/utils/validation.js). Así el usuario ve el error antes de
+// enviar y nunca descubre un rechazo después de recibir un correo.
 // ─────────────────────────────────────────────────────────────────────────
 
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// Misma regex que el backend: acepta `juan+1@gmail.com`, subdominios y TLD
+// de 2 a 24 letras (.com, .sv, .info, .online...).
+export const EMAIL_REGEX =
+  /^[A-Za-z0-9_%+-]+(?:\.[A-Za-z0-9_%+-]+)*@[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?)*\.[A-Za-z]{2,24}$/;
+export const NAME_REGEX = /^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ][A-Za-zÁÉÍÓÚÜÑáéíóúüñ' .-]*$/;
+export const CODE_REGEX = /^[0-9a-f]{6}$/;
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 
+export const PASSWORD_MIN = 8;
+export const PASSWORD_MAX = 72;
+export const ADDRESS_MIN = 8;
+export const ADDRESS_MAX = 200;
+export const COMMENT_MAX = 500;
+export const MIN_AGE = 18;
+export const CODE_LENGTH = 6;
+
+// ── Normalizadores ───────────────────────────────────────────────────────
+export const normalizeEmail = (value) => (value || "").trim().toLowerCase();
+
+// Deja solo caracteres hexadecimales en minúscula y corta a 6. Se usa en
+// el onChangeText del campo de código, así el teclado nunca puede meter
+// una mayúscula automática ni otros símbolos.
+export const sanitizeCode = (value) =>
+  (value || "").toLowerCase().replace(/[^0-9a-f]/g, "").slice(0, CODE_LENGTH);
+
+// ── Fechas ───────────────────────────────────────────────────────────────
+const pad = (n) => String(n).padStart(2, "0");
+
+// Date local → "AAAA-MM-DD" (el formato que espera el backend)
+export const toISODate = (date) =>
+  `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+
+// "AAAA-MM-DD" → Date local a mediodía (evita saltos de día por zona horaria)
+export const fromISODate = (value) => {
+  if (!value || !DATE_REGEX.test(String(value).slice(0, 10))) return null;
+  const [y, m, d] = String(value).slice(0, 10).split("-").map(Number);
+  const date = new Date(y, m - 1, d, 12);
+  if (date.getFullYear() !== y || date.getMonth() !== m - 1 || date.getDate() !== d) return null;
+  return date;
+};
+
+// Fecha más reciente que se puede elegir: hoy hace 18 años.
+export const maxBirthdate = () => {
+  const now = new Date();
+  return new Date(now.getFullYear() - MIN_AGE, now.getMonth(), now.getDate(), 12);
+};
+export const MIN_BIRTHDATE = new Date(1900, 0, 1, 12);
+
+export const ageFromISODate = (value, now = new Date()) => {
+  const date = fromISODate(value);
+  if (!date) return null;
+  let age = now.getFullYear() - date.getFullYear();
+  const m = now.getMonth() - date.getMonth();
+  if (m < 0 || (m === 0 && now.getDate() < date.getDate())) age--;
+  return age;
+};
+
+// ── Validadores ──────────────────────────────────────────────────────────
 export const validateRequired = (value, label = "Este campo") => {
   if (value === undefined || value === null || String(value).trim() === "") {
     return `${label} es obligatorio`;
@@ -16,35 +75,36 @@ export const validateRequired = (value, label = "Este campo") => {
 };
 
 export const validateEmail = (value) => {
-  if (!value || !value.trim()) return "El correo es obligatorio";
-  if (!EMAIL_REGEX.test(value.trim())) return "Ingresa un correo válido";
+  const email = normalizeEmail(value);
+  if (!email) return "El correo es obligatorio";
+  if (email.length > 254 || !EMAIL_REGEX.test(email)) return "Ingresa un correo válido";
   return "";
 };
 
 export const validateName = (value, label = "Este campo") => {
-  if (!value || !value.trim()) return `${label} es obligatorio`;
-  if (value.trim().length < 2) return `${label} debe tener al menos 2 caracteres`;
-  if (value.trim().length > 60) return `${label} es demasiado largo`;
+  const v = (value || "").trim();
+  if (!v) return `${label} es obligatorio`;
+  if (v.length < 2) return `${label} debe tener al menos 2 caracteres`;
+  if (v.length > 60) return `${label} es demasiado largo`;
+  if (!NAME_REGEX.test(v)) return `${label} solo puede contener letras`;
   return "";
 };
 
 export const validateBirthdate = (value) => {
-  if (!value || !value.trim()) return "La fecha de nacimiento es obligatoria";
-  if (!DATE_REGEX.test(value.trim())) return "Usa el formato AAAA-MM-DD";
-  const date = new Date(value.trim());
-  if (Number.isNaN(date.getTime())) return "Fecha inválida";
-  const age = (Date.now() - date.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
-  if (age < 13) return "Debes tener al menos 13 años";
-  if (age > 120) return "Fecha inválida";
+  if (!value || !String(value).trim()) return "La fecha de nacimiento es obligatoria";
+  const date = fromISODate(value);
+  if (!date) return "Fecha de nacimiento inválida";
+  if (date > new Date()) return "La fecha de nacimiento no puede ser futura";
+  if (date < MIN_BIRTHDATE) return "Fecha de nacimiento inválida";
+  if (ageFromISODate(value) < MIN_AGE) return `Debes ser mayor de ${MIN_AGE} años`;
   return "";
 };
 
+// Mismos requisitos que el backend: entre 8 y 72 caracteres.
 export const validatePassword = (value) => {
   if (!value) return "La contraseña es obligatoria";
-  if (value.length < 8) return "Mínimo 8 caracteres";
-  if (!/[a-zA-Z]/.test(value) || !/[0-9]/.test(value)) {
-    return "Debe incluir al menos 1 letra y 1 número";
-  }
+  if (value.length < PASSWORD_MIN) return `Mínimo ${PASSWORD_MIN} caracteres`;
+  if (value.length > PASSWORD_MAX) return `Máximo ${PASSWORD_MAX} caracteres`;
   return "";
 };
 
@@ -55,14 +115,17 @@ export const validateConfirmPassword = (password, confirm) => {
 };
 
 export const validateCode = (value) => {
-  if (!value || !value.trim()) return "El código es obligatorio";
-  if (value.trim().length < 4) return "El código no es válido";
+  const v = (value || "").trim().toLowerCase();
+  if (!v) return "El código es obligatorio";
+  if (!CODE_REGEX.test(v)) return "El código tiene 6 caracteres (números 0-9 y letras a-f)";
   return "";
 };
 
 export const validateAddress = (value) => {
-  if (!value || !value.trim()) return "La dirección es obligatoria";
-  if (value.trim().length < 8) return "Escribe una dirección más detallada";
+  const v = (value || "").trim();
+  if (!v) return "La dirección es obligatoria";
+  if (v.length < ADDRESS_MIN) return "Escribe una dirección más detallada";
+  if (v.length > ADDRESS_MAX) return `Máximo ${ADDRESS_MAX} caracteres`;
   return "";
 };
 
@@ -75,13 +138,20 @@ export const validateMessage = (value) => {
 
 export const validateRating = (value) => {
   const n = Number(value);
-  if (!n || n < 1 || n > 5) return "Selecciona una calificación de 1 a 5";
+  if (!Number.isInteger(n) || n < 1 || n > 5) return "Selecciona una calificación de 1 a 5";
   return "";
 };
 
 export const validateComment = (value) => {
   if (!value) return "";
-  if (value.trim().length > 500) return "Máximo 500 caracteres";
+  if (value.trim().length > COMMENT_MAX) return `Máximo ${COMMENT_MAX} caracteres`;
+  return "";
+};
+
+export const validateQuantity = (qty, stock) => {
+  const n = Number(qty);
+  if (!Number.isInteger(n) || n < 1) return "La cantidad mínima es 1";
+  if (stock !== undefined && n > stock) return `Solo hay ${stock} disponibles`;
   return "";
 };
 
