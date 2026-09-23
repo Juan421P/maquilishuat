@@ -1,20 +1,26 @@
-import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { RefreshControl, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import Svg, { Path, Rect } from "react-native-svg";
 import { T, GRAD_COLORS } from "../utils/theme";
 import AppBar from "../layout/AppBar";
 import ProductCard from "../components/ProductCard";
+import StateView from "../components/StateView";
 
-export default function HomePage({ user, products, cart, onAdd, onGoCart, onGoCatalog }) {
-  const cartCount = cart.reduce((a, x) => a + x.qty, 0);
+// `shop` lo arma App.js: catálogo, estados de carga y acciones del carrito.
+export default function HomePage({ user, shop, onGoCart, onGoCatalog }) {
+  const { available, loading, error, offline, refreshing, refresh, reload, loaded, qtyOf, onAdd, openProduct, cartCount } = shop;
+  const firstName = (user?.name || user?.email?.split("@")[0] || "").split(" ")[0];
 
   return (
     <View style={{ flex: 1 }}>
       <AppBar cartCount={cartCount} onCartPress={onGoCart} />
-      <ScrollView style={{ flex: 1, backgroundColor: T.bg }}>
+      <ScrollView
+        style={{ flex: 1, backgroundColor: T.bg }}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} colors={[T.purple]} tintColor={T.purple} />}
+      >
         <LinearGradient colors={GRAD_COLORS} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ paddingHorizontal: 18, paddingBottom: 22 }}>
           <Text style={{ color: "rgba(255,255,255,0.75)", fontSize: 12, fontWeight: "600", letterSpacing: 1, textTransform: "uppercase" }}>
-            Hola, {user.email?.split("@")[0]} 👋
+            Hola, {firstName} 👋
           </Text>
           <Text style={{ color: "#fff", fontSize: 18, fontWeight: "800", marginTop: 2 }}>¿Qué necesitas hoy?</Text>
           <View style={{ flexDirection: "row", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
@@ -35,6 +41,7 @@ export default function HomePage({ user, products, cart, onAdd, onGoCart, onGoCa
               <TouchableOpacity
                 key={label}
                 onPress={action}
+                accessibilityRole="button"
                 style={{ flex: 1, backgroundColor: T.surface, borderWidth: 1, borderColor: T.border, borderRadius: 12, paddingVertical: 14, alignItems: "center", gap: 8 }}
               >
                 <View>
@@ -57,8 +64,8 @@ export default function HomePage({ user, products, cart, onAdd, onGoCart, onGoCa
                     </Svg>
                   </View>
                   {badge > 0 && (
-                    <View style={{ position: "absolute", top: -4, right: -4, width: 16, height: 16, borderRadius: 8, backgroundColor: T.pink, alignItems: "center", justifyContent: "center" }}>
-                      <Text style={{ color: "#fff", fontSize: 9, fontWeight: "800" }}>{badge}</Text>
+                    <View style={{ position: "absolute", top: -4, right: -6, minWidth: 18, height: 18, paddingHorizontal: 3, borderRadius: 9, backgroundColor: T.pink, alignItems: "center", justifyContent: "center" }}>
+                      <Text style={{ color: "#fff", fontSize: 9, fontWeight: "800" }}>{badge > 9 ? "9+" : badge}</Text>
                     </View>
                   )}
                 </View>
@@ -68,19 +75,23 @@ export default function HomePage({ user, products, cart, onAdd, onGoCart, onGoCa
           </View>
 
           <Text style={{ fontSize: 14, fontWeight: "800", color: T.text1, marginBottom: 12 }}>Productos destacados</Text>
-          <View style={{ gap: 8 }}>
-            {products.slice(0, 3).map((p) => (
-              <ProductCard key={p._id} product={p} inCart={!!cart.find((x) => x.id === p._id)} onAdd={() => onAdd(p)} />
-            ))}
-            {products.length === 0 && (
-              <Text style={{ color: T.textMut, fontSize: 14, textAlign: "center", paddingVertical: 20 }}>
-                Cargando productos...
-              </Text>
-            )}
-          </View>
-          {products.length > 3 && (
+          {loading && !loaded ? (
+            <StateView loading message="Cargando productos..." compact />
+          ) : error && !loaded ? (
+            <StateView error={error} offline={offline} onRetry={reload} compact />
+          ) : available.length === 0 ? (
+            <StateView title="No hay productos disponibles" message="Vuelve más tarde o desliza hacia abajo para actualizar." compact />
+          ) : (
+            <View style={{ gap: 8 }}>
+              {available.slice(0, 3).map((p) => (
+                <ProductCard key={p._id} product={p} qtyInCart={qtyOf(p._id)} onAdd={() => onAdd(p)} onOpen={() => openProduct(p)} />
+              ))}
+            </View>
+          )}
+          {available.length > 3 && (
             <TouchableOpacity
               onPress={onGoCatalog}
+              accessibilityRole="button"
               style={{ marginTop: 12, paddingVertical: 11, borderRadius: 10, backgroundColor: "#f3e8ff", alignItems: "center" }}
             >
               <Text style={{ color: T.purple, fontSize: 14, fontWeight: "700" }}>Ver todo el catálogo →</Text>

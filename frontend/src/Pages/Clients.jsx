@@ -34,7 +34,8 @@ function ClientModal({ client, onClose, onSave }) {
         fd.append("name", form.name);
         fd.append("lastname", form.lastname);
         fd.append("email", form.email);
-        fd.append("password", "placeholder_no_change");
+        // Ya no se envía "password": el backend lo guardaba en texto plano y
+        // el cliente quedaba sin poder iniciar sesión.
         await clientsAPI.update(client._id, fd);
         toast.success("Cliente actualizado");
       }

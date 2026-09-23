@@ -17,7 +17,7 @@ export default function Btn({ children, onPress, disabled, variant = "primary", 
 
   if (variant === "primary") {
     return (
-      <TouchableOpacity activeOpacity={0.85} disabled={disabled} onPress={onPress}>
+      <TouchableOpacity activeOpacity={0.85} disabled={disabled} onPress={onPress} accessibilityRole="button" accessibilityState={{ disabled: !!disabled }}>
         <LinearGradient
           colors={GRAD_COLORS}
           start={{ x: 0, y: 0 }}
@@ -34,14 +34,17 @@ export default function Btn({ children, onPress, disabled, variant = "primary", 
     ghost: { backgroundColor: "transparent", borderWidth: 1.5, borderColor: "rgba(255,255,255,0.35)" },
     outline: { backgroundColor: "transparent", borderWidth: 1.5, borderColor: T.purple },
     danger: { backgroundColor: T.red },
+    soft: { backgroundColor: "#f3e8ff" },
   };
-  const colors = { ghost: "#fff", outline: T.purple, danger: "#fff" };
+  const colors = { ghost: "#fff", outline: T.purple, danger: "#fff", soft: T.purple };
 
   return (
     <TouchableOpacity
       activeOpacity={0.85}
       disabled={disabled}
       onPress={onPress}
+      accessibilityRole="button"
+      accessibilityState={{ disabled: !!disabled }}
       style={[base, variants[variant]]}
     >
       <Text style={[textStyle, { color: colors[variant] }]}>{children}</Text>

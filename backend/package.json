@@ -4,7 +4,7 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "node --import ./tests/setup.js --test --test-concurrency=1 tests/*.test.js",
     "dev": "nodemon index.js",
     "seed": "node scripts/seed-products.js"
   },

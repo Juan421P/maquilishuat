@@ -15,8 +15,15 @@ app.use(cors({
 }));
 app.use('/api', rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 100,
-    message: { error: 'too many requests, please try again later' }
+    // Configurable para pruebas automatizadas; en uso normal sigue en 100.
+    max: Number(process.env.RATE_LIMIT_MAX) || 100,
+    standardHeaders: true,
+    legacyHeaders: false,
+    // `message` (no `error`) para que la web y la app muestren el texto.
+    message: {
+        message: 'Demasiadas solicitudes. Espera un momento e inténtalo nuevamente.',
+        code: 'RATE_LIMITED'
+    }
 }));
 app.use('/api', router);
 app.use((req, res) => {

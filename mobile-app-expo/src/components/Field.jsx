@@ -2,6 +2,17 @@ import { Text, TextInput, View } from "react-native";
 import { T } from "../utils/theme";
 import Ic from "./Ic";
 
+// Mayúscula automática según el tipo de campo. Antes todos los campos que
+// no eran "email" usaban "sentences", y eso convertía la primera letra de
+// los códigos de verificación en mayúscula (el backend los rechazaba).
+const AUTO_CAPITALIZE = {
+  email: "none",
+  password: "none",
+  code: "none",
+  name: "words",
+  text: "sentences",
+};
+
 export default function Field({
   label,
   type = "text",
@@ -11,10 +22,18 @@ export default function Field({
   iconName,
   right,
   error,
+  hint,
   autoComplete,
+  autoCapitalize,
+  keyboardType,
+  maxLength,
+  editable = true,
+  multiline = false,
+  inputStyle,
+  inputProps = {},
 }) {
   const secureTextEntry = type === "password";
-  const keyboardType = type === "email" ? "email-address" : type === "date" ? "default" : "default";
+  const resolvedKeyboard = keyboardType || (type === "email" ? "email-address" : "default");
 
   return (
     <View style={{ marginBottom: 14 }}>
@@ -32,9 +51,9 @@ export default function Field({
           {label}
         </Text>
       )}
-      <View style={{ position: "relative", justifyContent: "center" }}>
+      <View style={{ position: "relative", justifyContent: multiline ? "flex-start" : "center" }}>
         {iconName && (
-          <View style={{ position: "absolute", left: 11, zIndex: 1 }}>
+          <View style={{ position: "absolute", left: 11, top: multiline ? 13 : undefined, zIndex: 1 }}>
             <Ic n={iconName} size={16} color={T.textMut} />
           </View>
         )}
@@ -45,23 +64,37 @@ export default function Field({
           placeholderTextColor={T.textMut}
           autoComplete={autoComplete}
           secureTextEntry={secureTextEntry}
-          keyboardType={keyboardType}
-          autoCapitalize={type === "email" ? "none" : "sentences"}
-          style={{
-            paddingVertical: 11,
-            paddingRight: right ? 44 : 12,
-            paddingLeft: iconName ? 38 : 12,
-            borderWidth: 1.5,
-            borderColor: error ? T.red : T.border,
-            borderRadius: 10,
-            fontSize: 14,
-            backgroundColor: T.surface,
-            color: T.text1,
-          }}
+          keyboardType={resolvedKeyboard}
+          autoCapitalize={autoCapitalize || AUTO_CAPITALIZE[type] || "sentences"}
+          autoCorrect={type === "text" || type === "name"}
+          maxLength={maxLength}
+          editable={editable}
+          multiline={multiline}
+          accessibilityLabel={label || placeholder}
+          style={[
+            {
+              paddingVertical: 11,
+              paddingRight: right ? 44 : 12,
+              paddingLeft: iconName ? 38 : 12,
+              borderWidth: 1.5,
+              borderColor: error ? T.red : T.border,
+              borderRadius: 10,
+              fontSize: 14,
+              backgroundColor: editable ? T.surface : T.bg,
+              color: editable ? T.text1 : T.text3,
+            },
+            multiline && { minHeight: 80, textAlignVertical: "top" },
+            inputStyle,
+          ]}
+          {...inputProps}
         />
         {right && <View style={{ position: "absolute", right: 11 }}>{right}</View>}
       </View>
-      {error && <Text style={{ fontSize: 12, color: T.red, marginTop: 3 }}>{error}</Text>}
+      {error ? (
+        <Text style={{ fontSize: 12, color: T.red, marginTop: 3 }}>{error}</Text>
+      ) : hint ? (
+        <Text style={{ fontSize: 11.5, color: T.textMut, marginTop: 3 }}>{hint}</Text>
+      ) : null}
     </View>
   );
 }

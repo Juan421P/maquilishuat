@@ -2,7 +2,8 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../components/Toast";
-import { validateEmail, validateRequired, rhfRule } from "../utils/validators";
+import { getErrorMessage } from "../utils/errors";
+import { validateEmail, validateRequired, normalizeEmail, rhfRule } from "../utils/validators";
 
 // Encapsula toda la lógica del formulario de login: validación con
 // react-hook-form, estado de carga/errores y la llamada a authAPI a través
@@ -24,13 +25,14 @@ export function useLoginForm({ onSuccess }) {
     setServerError("");
     setLoading(true);
     try {
-      await login(email.trim(), pw);
-      toast?.success("Sesión iniciada");
+      // El correo se normaliza (sin espacios y en minúsculas): el backend lo
+      // guarda así y antes "Juan@Gmail.com" no podía iniciar sesión.
+      const user = await login(normalizeEmail(email), pw);
+      toast?.success(user?.name ? `¡Hola, ${user.name}!` : "Sesión iniciada");
       onSuccess();
     } catch (e) {
-      const msg = e.message || "Correo o contraseña incorrectos";
+      const msg = getErrorMessage(e, "Correo o contraseña incorrectos");
       setServerError(msg);
-      toast?.error(msg);
     } finally {
       setLoading(false);
     }

@@ -1,23 +1,43 @@
 import jsonwebtoken from 'jsonwebtoken';
 import { config } from '../../config.js';
+import clientModel from '../models/client.js';
+import adminModel from '../models/admin.js';
 
-export const verifyToken = (req, res, next) => {
+const MODEL_BY_TYPE = { Client: clientModel, Admin: adminModel };
+
+export const verifyToken = async (req, res, next) => {
     const bearer = req.headers.authorization?.startsWith('Bearer ')
         ? req.headers.authorization.slice(7)
         : null;
-    const token = req.cookies.authCookie || bearer;
+    // El header Authorization (app móvil) tiene prioridad sobre la cookie
+    // (web). Así una cookie vieja que haya quedado guardada en el cookie jar
+    // nativo del teléfono no puede "ganarle" al token de la sesión actual.
+    const token = bearer || req.cookies.authCookie;
 
     if (!token) {
-        return res.status(401).json({ message: 'authentication required' });
+        return res.status(401).json({ message: 'Debes iniciar sesión', code: 'AUTH_REQUIRED' });
+    }
+
+    let decoded;
+    try {
+        decoded = jsonwebtoken.verify(token, config.jwt.secret);
+    } catch (error) {
+        return res.status(401).json({ message: 'Tu sesión expiró. Inicia sesión nuevamente.', code: 'SESSION_EXPIRED' });
     }
 
     try {
-        const decoded = jsonwebtoken.verify(token, config.jwt.secret);
-        req.user = { id: decoded.id, userType: decoded.userType };
-        return next();
+        // Si la cuenta fue eliminada, el token deja de servir aunque no
+        // haya vencido todavía.
+        const model = MODEL_BY_TYPE[decoded.userType];
+        if (!model || !(await model.exists({ _id: decoded.id }))) {
+            return res.status(401).json({ message: 'Tu sesión ya no es válida. Inicia sesión nuevamente.', code: 'SESSION_EXPIRED' });
+        }
     } catch (error) {
-        return res.status(401).json({ message: 'invalid or expired session' });
+        return next(error);
     }
+
+    req.user = { id: decoded.id, userType: decoded.userType };
+    return next();
 };
 
 export const requireRole = (...roles) => (req, res, next) => {
